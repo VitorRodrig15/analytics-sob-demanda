@@ -4,8 +4,6 @@ Sistema multi-agente de analytics conversacional com RAG, desenvolvido para o
 **Plano de Treinamento Técnico Corporativo** da DELL ("Designing Multi-Agent
 Systems", de Victor Dibia). Projeto: **Analytics sob Demanda (Business Data Q&A)**.
 
-**Autor:** Vitor Rodrigues de Oliveira
-**Supervisor:** Meigarom Lopes
 **Início:** 22/10/2026 · **Status:** em desenvolvimento
 
 ## O problema de negócio
