@@ -1,0 +1,11 @@
+# Segredos (chave da NVIDIA)
+.env
+
+# Dados brutos e gerados (o Kaggle nao permite redistribuir o dataset)
+data/raw/
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

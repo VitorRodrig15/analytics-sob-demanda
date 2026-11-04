@@ -1,0 +1,23 @@
+# ---------- Orquestracao de agentes ----------
+langgraph>=0.6
+langchain>=0.3
+
+# ---------- LLM (GPT-OSS-20B) + embeddings via NVIDIA NIM ----------
+langchain-nvidia-ai-endpoints>=0.3
+openai>=1.40                 # cliente usado para falar com o NIM (API compativel com a OpenAI)
+
+# ---------- Embeddings locais (alternativa leve, sem torch) ----------
+fastembed>=0.4
+
+# ---------- API ----------
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# ---------- Banco / PG Vector ----------
+psycopg[binary]>=3.2
+pgvector>=0.3
+sqlalchemy>=2.0
+
+# ---------- Ingestao e analise dos dados (2.2) ----------
+pandas>=2.2
+tabulate>=0.9                # tabelas em Markdown no relatorio de perfil

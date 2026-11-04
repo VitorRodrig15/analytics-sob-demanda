@@ -1,0 +1,296 @@
+[
+  {
+    "id": "ex01",
+    "pergunta": "Qual foi a receita total em 2017?",
+    "intencao": "agregacao",
+    "metricas": [
+      "Receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items"
+    ],
+    "sql": "SELECT ROUND(SUM(oi.price), 2) AS receita\nFROM dw.orders o\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2017-01-01'\n  AND o.order_purchase_timestamp <  '2018-01-01';"
+  },
+  {
+    "id": "ex02",
+    "pergunta": "Quantos pedidos foram entregues no último mês?",
+    "intencao": "agregacao",
+    "metricas": [
+      "Número de pedidos"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "-- \"ultimo mes\" = agosto/2018 (data de referencia dos dados: 2018-08-31)\nSELECT COUNT(*) AS pedidos_entregues\nFROM dw.orders o\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2018-08-01'\n  AND o.order_purchase_timestamp <  '2018-09-01';"
+  },
+  {
+    "id": "ex03",
+    "pergunta": "Qual o ticket médio deste ano?",
+    "intencao": "agregacao",
+    "metricas": [
+      "Ticket médio"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items"
+    ],
+    "sql": "-- \"este ano\" = jan a ago/2018\nSELECT ROUND(SUM(oi.price) / COUNT(DISTINCT o.order_id), 2) AS ticket_medio\nFROM dw.orders o\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2018-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01';"
+  },
+  {
+    "id": "ex04",
+    "pergunta": "Qual o tempo médio de entrega no último trimestre?",
+    "intencao": "agregacao",
+    "metricas": [
+      "Tempo médio de entrega"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "-- \"ultimo trimestre\" = jun a ago/2018\nSELECT ROUND(AVG(EXTRACT(EPOCH FROM (o.order_delivered_customer_date - o.order_purchase_timestamp)) / 86400)::numeric, 1)\n       AS tempo_medio_entrega_dias\nFROM dw.orders o\nWHERE o.order_status = 'delivered'\n  AND o.order_delivered_customer_date IS NOT NULL\n  AND o.order_purchase_timestamp >= '2018-06-01'\n  AND o.order_purchase_timestamp <  '2018-09-01';"
+  },
+  {
+    "id": "ex05",
+    "pergunta": "Quantos pedidos tivemos na Black Friday de 2017?",
+    "intencao": "agregacao",
+    "metricas": [
+      "Número de pedidos"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "-- Black Friday 2017 = 24/11/2017\nSELECT COUNT(*)                                                AS pedidos_feitos,\n       COUNT(*) FILTER (WHERE o.order_status = 'delivered')    AS pedidos_entregues\nFROM dw.orders o\nWHERE o.order_purchase_timestamp >= '2017-11-24'\n  AND o.order_purchase_timestamp <  '2017-11-25';",
+    "observacao": "Pergunta sobre 'pedidos tivemos' mostra pedidos feitos e entregues para deixar claro o critério."
+  },
+  {
+    "id": "ex06",
+    "pergunta": "Compare a receita do Sudeste com a do Nordeste em 2018.",
+    "intencao": "comparacao",
+    "metricas": [
+      "Receita",
+      "Número de pedidos"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.customers"
+    ],
+    "sql": "SELECT c.customer_region              AS regiao,\n       ROUND(SUM(oi.price), 2)        AS receita,\n       COUNT(DISTINCT o.order_id)     AS pedidos\nFROM dw.orders o\nJOIN dw.customers c    ON c.customer_id = o.customer_id\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2018-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01'\n  AND c.customer_region IN ('Sudeste', 'Nordeste')\nGROUP BY c.customer_region\nORDER BY receita DESC;"
+  },
+  {
+    "id": "ex07",
+    "pergunta": "Como foi a receita de 2018 em relação a 2017?",
+    "intencao": "comparacao",
+    "metricas": [
+      "Receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items"
+    ],
+    "sql": "-- Compara o mesmo intervalo (jan a ago) dos dois anos\nWITH por_ano AS (\n    SELECT EXTRACT(YEAR FROM o.order_purchase_timestamp)::int AS ano,\n           SUM(oi.price)                                      AS receita\n    FROM dw.orders o\n    JOIN dw.order_items oi ON oi.order_id = o.order_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp >= '2017-01-01'\n      AND o.order_purchase_timestamp <  '2018-09-01'\n      AND EXTRACT(MONTH FROM o.order_purchase_timestamp) <= 8\n    GROUP BY 1\n)\nSELECT ano,\n       ROUND(receita, 2)                                                    AS receita_jan_ago,\n       ROUND(100 * (receita / LAG(receita) OVER (ORDER BY ano) - 1), 2)     AS variacao_pct\nFROM por_ano\nORDER BY ano;"
+  },
+  {
+    "id": "ex08",
+    "pergunta": "Qual o ticket médio por forma de pagamento?",
+    "intencao": "comparacao",
+    "metricas": [
+      "Ticket médio"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.order_payments"
+    ],
+    "sql": "-- Receita agregada por pedido ANTES de juntar com pagamentos (evita multiplicar linhas)\nWITH receita_pedido AS (\n    SELECT o.order_id, SUM(oi.price) AS receita\n    FROM dw.orders o\n    JOIN dw.order_items oi ON oi.order_id = o.order_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp < '2018-09-01'\n    GROUP BY o.order_id\n)\nSELECT p.payment_type             AS forma_pagamento,\n       COUNT(*)                   AS pedidos,\n       ROUND(AVG(r.receita), 2)   AS ticket_medio\nFROM receita_pedido r\nJOIN dw.order_payments p ON p.order_id = r.order_id AND p.payment_sequential = 1\nGROUP BY p.payment_type\nORDER BY pedidos DESC;"
+  },
+  {
+    "id": "ex09",
+    "pergunta": "Qual o percentual de entregas no prazo por região?",
+    "intencao": "comparacao",
+    "metricas": [
+      "Entregas no prazo"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.customers"
+    ],
+    "sql": "SELECT c.customer_region AS regiao,\n       COUNT(*)          AS pedidos_entregues,\n       ROUND(100.0 * AVG((o.order_delivered_customer_date::date <= o.order_estimated_delivery_date::date)::int), 2)\n                         AS entregas_no_prazo_pct\nFROM dw.orders o\nJOIN dw.customers c ON c.customer_id = o.customer_id\nWHERE o.order_status = 'delivered'\n  AND o.order_delivered_customer_date IS NOT NULL\n  AND o.order_purchase_timestamp < '2018-09-01'\nGROUP BY c.customer_region\nORDER BY entregas_no_prazo_pct;"
+  },
+  {
+    "id": "ex10",
+    "pergunta": "Qual o peso do frete sobre a receita em cada região?",
+    "intencao": "comparacao",
+    "metricas": [
+      "Percentual do frete sobre a receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.customers"
+    ],
+    "sql": "SELECT c.customer_region                                   AS regiao,\n       ROUND(SUM(oi.price), 2)                             AS receita,\n       ROUND(SUM(oi.freight_value), 2)                     AS frete,\n       ROUND(100 * SUM(oi.freight_value) / SUM(oi.price), 2) AS frete_sobre_receita_pct\nFROM dw.orders o\nJOIN dw.customers c    ON c.customer_id = o.customer_id\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp < '2018-09-01'\nGROUP BY c.customer_region\nORDER BY frete_sobre_receita_pct DESC;"
+  },
+  {
+    "id": "ex11",
+    "pergunta": "Como evoluiu o número de pedidos mês a mês em 2018?",
+    "intencao": "tendencia",
+    "metricas": [
+      "Número de pedidos"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "SELECT DATE_TRUNC('month', o.order_purchase_timestamp)::date AS mes,\n       COUNT(*)                                              AS pedidos\nFROM dw.orders o\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2018-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "id": "ex12",
+    "pergunta": "Qual foi a evolução mensal da receita em 2017?",
+    "intencao": "tendencia",
+    "metricas": [
+      "Receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items"
+    ],
+    "sql": "SELECT DATE_TRUNC('month', o.order_purchase_timestamp)::date AS mes,\n       ROUND(SUM(oi.price), 2)                               AS receita\nFROM dw.orders o\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2017-01-01'\n  AND o.order_purchase_timestamp <  '2018-01-01'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "id": "ex13",
+    "pergunta": "Como a nota média de avaliação variou ao longo dos meses?",
+    "intencao": "tendencia",
+    "metricas": [
+      "Nota média de avaliação"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_reviews"
+    ],
+    "sql": "SELECT DATE_TRUNC('month', o.order_purchase_timestamp)::date AS mes,\n       COUNT(*)                                              AS avaliacoes,\n       ROUND(AVG(r.review_score), 2)                         AS nota_media\nFROM dw.orders o\nJOIN dw.order_reviews r ON r.order_id = o.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2017-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "id": "ex14",
+    "pergunta": "O tempo de entrega melhorou ao longo dos trimestres?",
+    "intencao": "tendencia",
+    "metricas": [
+      "Tempo médio de entrega"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "-- Apenas trimestres completos (2018-T3 so teria julho e agosto)\nSELECT TO_CHAR(DATE_TRUNC('quarter', o.order_purchase_timestamp), 'YYYY-\"T\"Q') AS trimestre,\n       COUNT(*)                                                                AS pedidos,\n       ROUND(AVG(EXTRACT(EPOCH FROM (o.order_delivered_customer_date - o.order_purchase_timestamp)) / 86400)::numeric, 1)\n                                                                               AS tempo_medio_entrega_dias\nFROM dw.orders o\nWHERE o.order_status = 'delivered'\n  AND o.order_delivered_customer_date IS NOT NULL\n  AND o.order_purchase_timestamp >= '2017-01-01'\n  AND o.order_purchase_timestamp <  '2018-07-01'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "id": "ex15",
+    "pergunta": "Como evoluiu a taxa de cancelamento por mês?",
+    "intencao": "tendencia",
+    "metricas": [
+      "Taxa de cancelamento"
+    ],
+    "tabelas": [
+      "dw.orders"
+    ],
+    "sql": "SELECT DATE_TRUNC('month', o.order_purchase_timestamp)::date AS mes,\n       COUNT(*)                                              AS pedidos_feitos,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE o.order_status IN ('canceled', 'unavailable')) / COUNT(*), 2)\n                                                             AS taxa_cancelamento_pct\nFROM dw.orders o\nWHERE o.order_purchase_timestamp >= '2017-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "id": "ex16",
+    "pergunta": "Quais são as 10 categorias com maior receita?",
+    "intencao": "ranking",
+    "metricas": [
+      "Receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.products"
+    ],
+    "sql": "SELECT p.product_category_name     AS categoria,\n       ROUND(SUM(oi.price), 2)     AS receita,\n       COUNT(DISTINCT o.order_id)  AS pedidos\nFROM dw.orders o\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nJOIN dw.products p     ON p.product_id = oi.product_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp < '2018-09-01'\nGROUP BY p.product_category_name\nORDER BY receita DESC\nLIMIT 10;"
+  },
+  {
+    "id": "ex17",
+    "pergunta": "Quem foram os 10 vendedores com maior receita em 2018?",
+    "intencao": "ranking",
+    "metricas": [
+      "Receita"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.sellers"
+    ],
+    "sql": "SELECT oi.seller_id,\n       s.seller_city               AS cidade,\n       s.seller_state              AS uf,\n       ROUND(SUM(oi.price), 2)     AS receita,\n       COUNT(DISTINCT o.order_id)  AS pedidos\nFROM dw.orders o\nJOIN dw.order_items oi ON oi.order_id = o.order_id\nJOIN dw.sellers s      ON s.seller_id = oi.seller_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp >= '2018-01-01'\n  AND o.order_purchase_timestamp <  '2018-09-01'\nGROUP BY oi.seller_id, s.seller_city, s.seller_state\nORDER BY receita DESC\nLIMIT 10;",
+    "observacao": "Vendedores não têm nome no dataset; identifique pelo seller_id e cidade/UF."
+  },
+  {
+    "id": "ex18",
+    "pergunta": "Quais estados têm mais atrasos nas entregas?",
+    "intencao": "ranking",
+    "metricas": [
+      "Entregas no prazo",
+      "Atraso médio"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.customers"
+    ],
+    "sql": "SELECT c.customer_state AS uf,\n       COUNT(*)         AS pedidos_entregues,\n       ROUND(100.0 * AVG((o.order_delivered_customer_date::date > o.order_estimated_delivery_date::date)::int), 2)\n                        AS pedidos_atrasados_pct,\n       ROUND(AVG(o.order_delivered_customer_date::date - o.order_estimated_delivery_date::date)\n             FILTER (WHERE o.order_delivered_customer_date::date > o.order_estimated_delivery_date::date), 1)\n                        AS atraso_medio_dias\nFROM dw.orders o\nJOIN dw.customers c ON c.customer_id = o.customer_id\nWHERE o.order_status = 'delivered'\n  AND o.order_delivered_customer_date IS NOT NULL\n  AND o.order_purchase_timestamp < '2018-09-01'\nGROUP BY c.customer_state\nHAVING COUNT(*) >= 100\nORDER BY pedidos_atrasados_pct DESC\nLIMIT 10;",
+    "observacao": "Estados com menos de 100 pedidos são excluídos para evitar percentuais instáveis."
+  },
+  {
+    "id": "ex19",
+    "pergunta": "Quais categorias têm a pior avaliação dos clientes?",
+    "intencao": "ranking",
+    "metricas": [
+      "Nota média de avaliação"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.order_reviews",
+      "dw.products"
+    ],
+    "sql": "-- Nota e categoria agregadas por pedido antes do JOIN (evita multiplicar linhas)\nWITH nota_pedido AS (\n    SELECT r.order_id, AVG(r.review_score) AS nota\n    FROM dw.order_reviews r\n    GROUP BY r.order_id\n),\ncategoria_pedido AS (\n    SELECT DISTINCT oi.order_id, p.product_category_name AS categoria\n    FROM dw.order_items oi\n    JOIN dw.products p ON p.product_id = oi.product_id\n)\nSELECT cp.categoria,\n       COUNT(*)                 AS pedidos_avaliados,\n       ROUND(AVG(np.nota), 2)   AS nota_media\nFROM categoria_pedido cp\nJOIN nota_pedido np ON np.order_id = cp.order_id\nJOIN dw.orders o    ON o.order_id = cp.order_id\nWHERE o.order_status = 'delivered'\n  AND o.order_purchase_timestamp < '2018-09-01'\nGROUP BY cp.categoria\nHAVING COUNT(*) >= 100\nORDER BY nota_media\nLIMIT 10;",
+    "observacao": "Categorias com menos de 100 pedidos avaliados são excluídas."
+  },
+  {
+    "id": "ex20",
+    "pergunta": "Qual foi a taxa de churn por região no último trimestre?",
+    "intencao": "ranking",
+    "metricas": [
+      "Churn de clientes"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.customers"
+    ],
+    "sql": "-- Periodo: jun a ago/2018 | base: clientes que compraram de dez/2017 a mai/2018\nWITH base AS (\n    SELECT c.customer_unique_id, MIN(c.customer_region) AS regiao\n    FROM dw.orders o\n    JOIN dw.customers c ON c.customer_id = o.customer_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp >= '2017-12-01'\n      AND o.order_purchase_timestamp <  '2018-06-01'\n    GROUP BY c.customer_unique_id\n),\ncompraram_no_periodo AS (\n    SELECT DISTINCT c.customer_unique_id\n    FROM dw.orders o\n    JOIN dw.customers c ON c.customer_id = o.customer_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp >= '2018-06-01'\n      AND o.order_purchase_timestamp <  '2018-09-01'\n)\nSELECT b.regiao,\n       COUNT(*)                                             AS clientes_base,\n       COUNT(*) FILTER (WHERE p.customer_unique_id IS NULL) AS clientes_churn,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE p.customer_unique_id IS NULL) / COUNT(*), 2) AS churn_pct\nFROM base b\nLEFT JOIN compraram_no_periodo p ON p.customer_unique_id = b.customer_unique_id\nGROUP BY b.regiao\nORDER BY churn_pct DESC;",
+    "observacao": "Churn alto (~97-99%) é esperado: o marketplace é de compra única. Explicar ao usuário."
+  },
+  {
+    "id": "ex21",
+    "pergunta": "Qual foi a taxa de churn de vendedores por região no último trimestre?",
+    "intencao": "ranking",
+    "metricas": [
+      "Churn de vendedores"
+    ],
+    "tabelas": [
+      "dw.orders",
+      "dw.order_items",
+      "dw.sellers"
+    ],
+    "sql": "-- Periodo: jun a ago/2018 | base: vendedores que venderam de dez/2017 a mai/2018\n-- Regiao do VENDEDOR (seller_region), nao do cliente\nWITH base AS (\n    SELECT DISTINCT oi.seller_id\n    FROM dw.orders o\n    JOIN dw.order_items oi ON oi.order_id = o.order_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp >= '2017-12-01'\n      AND o.order_purchase_timestamp <  '2018-06-01'\n),\nvenderam_no_periodo AS (\n    SELECT DISTINCT oi.seller_id\n    FROM dw.orders o\n    JOIN dw.order_items oi ON oi.order_id = o.order_id\n    WHERE o.order_status = 'delivered'\n      AND o.order_purchase_timestamp >= '2018-06-01'\n      AND o.order_purchase_timestamp <  '2018-09-01'\n)\nSELECT s.seller_region                              AS regiao,\n       COUNT(*)                                     AS vendedores_base,\n       COUNT(*) FILTER (WHERE v.seller_id IS NULL)  AS vendedores_churn,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE v.seller_id IS NULL) / COUNT(*), 2) AS churn_vendedores_pct\nFROM base b\nJOIN dw.sellers s                 ON s.seller_id = b.seller_id\nLEFT JOIN venderam_no_periodo v   ON v.seller_id = b.seller_id\nGROUP BY s.seller_region\nORDER BY churn_vendedores_pct DESC;",
+    "observacao": "Pergunta usada como exemplo principal no documento da E1. Regiões com poucos vendedores na base (ex.: Norte com 2) geram percentuais instáveis: mostre a base junto e alerte o usuário."
+  },
+  {
+    "id": "ex22",
+    "pergunta": "Qual a margem de contribuição por categoria?",
+    "intencao": "indisponivel",
+    "metricas": [
+      "Margem de contribuição"
+    ],
+    "tabelas": [],
+    "sql": null,
+    "observacao": "Não calculável: o dataset não tem custo dos produtos. Responder isso e oferecer receita ou percentual do frete sobre a receita por categoria."
+  }
+]
