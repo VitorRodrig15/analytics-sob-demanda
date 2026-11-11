@@ -11,6 +11,11 @@ toda pergunta). Aqui, **a LLM decide**, a cada pergunta, se busca no dicionário
 consulta o banco, as duas coisas, nenhuma, ou se pede esclarecimento — usando tool
 calling real (o parâmetro `tools` da API, formato OpenAI).
 
+## Apresentação desta entrega
+
+- [Ver o código-fonte no GitHub](../../apresentacoes/apresentacao_E4/apresentacao_E4.html)
+- [Baixar só a apresentação (.zip)](../../apresentacoes/apresentacao_E4.zip) — baixa e extraia para abrir o `.html` localmente, sem clonar o repositório inteiro
+
 ## 4.1 Primeiro agente implementado
 
 **Script:** [`scripts/agent.py`](../../../scripts/agent.py) — função `run_agent(pergunta)`.
