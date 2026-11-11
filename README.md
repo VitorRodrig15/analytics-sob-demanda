@@ -68,7 +68,7 @@ gerados, exemplos de execução, prints de resultado).
 | E1 | Planejamento e Design do Sistema | 22/10 – 24/10 | ✅ Concluída | [docs/entregas/E1](docs/entregas/E1/README.md) |
 | E2 | Infraestrutura e Ingestão de Dados | 27/10 – 31/10 | ✅ Concluída | [docs/entregas/E2](docs/entregas/E2/README.md) |
 | E3 | Pipeline RAG Funcional | 03/11 – 07/11 | ✅ Concluída | [docs/entregas/E3](docs/entregas/E3/README.md) |
-| E4 | Primeiro Agente Funcional | 10/11 – 14/11 | ⏳ Em breve | — |
+| E4 | Primeiro Agente Funcional | 10/11 – 14/11 | ✅ Concluída | [docs/entregas/E4](docs/entregas/E4/README.md) |
 | E5 | Sistema Multi-Agente Orquestrado | 17/11 – 21/11 | ⏳ Em breve | — |
 | E6 | API e Interface do Usuário | 24/11 – 28/11 | ⏳ Em breve | — |
 | E7 | Testes, Avaliação e Documentação | 01/12 – 05/12 | ⏳ Em breve | — |
@@ -119,6 +119,7 @@ docker compose exec app python scripts/build_chunks.py         # E2 — divide o
 docker compose exec app python scripts/embed_chunks.py         # E2 — gera os embeddings
 docker compose exec app python scripts/validate_ingestion.py   # E2 — valida a ingestão
 docker compose exec app python scripts/rag_pipeline.py "qual o ticket médio?"  # E3 — pergunta ao pipeline RAG
+docker compose exec app python scripts/agent.py "qual foi a receita de 2017?" # E4 — pergunta ao agente com tools
 ```
 
 > A chamada à LLM (`rag_pipeline.py`) leva entre 130 e 180 segundos por
