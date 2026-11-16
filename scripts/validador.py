@@ -50,7 +50,25 @@ def validar_sql(sql: str) -> ValidacaoResultado:
             motivo="Apenas instrucoes SELECT (ou WITH ... SELECT) sao permitidas",
         )
 
-    nomes_cte = {cte.alias_or_name for cte in statement.find_all(exp.CTE)}
+    # So as CTEs do WITH de topo (anexado diretamente ao `statement`) contam
+    # como "nao e tabela real" - nao usamos find_all(exp.CTE) aqui, porque
+    # isso pegaria tambem CTEs definidas dentro de subqueries com escopo
+    # proprio (ex.: um IN (WITH orders AS (...) SELECT ...) ou uma derived
+    # table), que nao tem relacao com as tabelas referenciadas fora dessa
+    # subquery - so porque uma CTE interna se chama "orders" nao quer dizer
+    # que um FROM orders no nivel de cima se refere a ela.
+    #
+    # Dependendo da versao do sqlglot, "WITH t AS (...) SELECT ..." vira ou
+    # um no exp.With envolvendo o exp.Select, ou um exp.Select com a clausula
+    # WITH anexada em si mesmo (args["with"/"with_"]); cobrimos os dois.
+    if isinstance(statement, exp.With):
+        with_de_topo = statement
+    else:
+        with_de_topo = statement.args.get("with") or statement.args.get("with_")
+
+    nomes_cte: set[str] = set()
+    if with_de_topo is not None:
+        nomes_cte = {cte.alias_or_name for cte in with_de_topo.expressions}
 
     for tabela in statement.find_all(exp.Table):
         if not tabela.db and tabela.name in nomes_cte:

@@ -40,3 +40,16 @@ def test_rejeita_sql_sintaticamente_invalido_sem_lancar_excecao():
     r = validar_sql("SELECT FROM WHERE dw.orders")
     assert r.ok is False
     assert r.motivo
+
+
+def test_rejeita_tabela_fora_do_schema_dw_escondida_atras_de_cte_de_escopo_diferente():
+    # uma CTE chamada "orders", definida dentro de uma subquery (IN (...)),
+    # nao pode "esconder" uma referencia de FROM orders no nivel de cima -
+    # essa CTE tem escopo proprio, nao e visivel la fora. O FROM orders
+    # externo e uma tabela de verdade, sem schema, e deve ser rejeitado.
+    sql = (
+        "SELECT * FROM orders WHERE order_id IN "
+        "(WITH orders AS (SELECT 1 AS x) SELECT x FROM orders)"
+    )
+    r = validar_sql(sql)
+    assert r.ok is False
