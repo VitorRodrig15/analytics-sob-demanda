@@ -73,7 +73,19 @@ def main() -> None:
         "saida": sql_1,
     })
 
-    erro_anterior = 'column "orders.customer_city" does not exist'
+    # Erro amarrado a algo que o SQL de G1 de fato usa (o filtro de data por
+    # intervalo), não a uma coluna que a query nunca referencia - só assim o
+    # caso consegue provar que o prompt reage de fato ao erro_anterior
+    # (ver nota de revisão no relatório sobre a 1a tentativa, que usava um
+    # erro de "customer_city" irrelevante para esta query de receita).
+    erro_anterior = (
+        "A consulta anterior deu timeout: o filtro "
+        "\"o.order_purchase_timestamp >= '2017-01-01' AND "
+        "o.order_purchase_timestamp < '2018-01-01'\" não usa o índice da "
+        "coluna. Reescreva o filtro de ano usando "
+        "EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2017 em vez do "
+        "intervalo de datas."
+    )
     print(f"[gerador_sql 2/2] com erro_anterior: {erro_anterior!r}")
     sql_2 = gerar_sql(pergunta_sql, contexto_rag_sql, erro_anterior, client)
     print(f"   -> {sql_2[:120]}...")
