@@ -18,6 +18,10 @@ from openai import OpenAI
 
 LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+# 150, não o exemplo de 20 do brief: o gpt-oss-20b gasta tokens no canal de
+# raciocinio interno antes do conteudo final, e com um valor baixo a resposta
+# trunca ainda nesse canal - message.content vem None e cai sempre no
+# fallback "ambas", mascarando que nenhuma classificacao real aconteceu.
 MAX_TOKENS = 150
 TEMPERATURE = 0
 
