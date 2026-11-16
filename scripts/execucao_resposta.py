@@ -132,10 +132,19 @@ def _montar_user_content(ctx: AgentContext) -> str:
         and ctx.tentativas > 0
     )
     if tentativas_esgotadas:
+        # O loop pode ter se esgotado em dois lugares diferentes
+        # (grafo_routing.py): no Validador (rotear_apos_validador), que
+        # nunca chega a chamar executar_sql e só preenche
+        # ctx.motivo_rejeicao, ou na própria execução (rotear_apos_execucao),
+        # que preenche ctx.erro_execucao. Prioriza o erro de execução (é o
+        # mais recente/específico quando os dois existem), mas cai para o
+        # motivo de rejeição do Validador antes de desistir e dizer "não
+        # informado" - senão a razão real da falha de validação se perde.
+        motivo = ctx.erro_execucao or ctx.motivo_rejeicao or "não informado"
         partes.append(
             f"Depois de {ctx.tentativas} tentativa(s), não foi possível "
             "obter um resultado válido do banco de dados. Último erro "
-            f"encontrado: {ctx.erro_execucao or 'não informado'}. Explique "
+            f"encontrado: {motivo}. Explique "
             "ao gestor, em português, que não foi possível responder com "
             "dado real agora, sem inventar um número."
         )
