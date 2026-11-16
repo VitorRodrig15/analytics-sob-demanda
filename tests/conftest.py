@@ -1,7 +1,8 @@
 # tests/conftest.py
-# scripts/tools.py usa imports "soltos" (ex.: `from search import retrieve`), que
-# so resolvem com scripts/ no sys.path. Os scripts rodam assim pelo proprio
-# diretorio; aqui damos o mesmo caminho aos testes.
+# Configura o sys.path para que os scripts usem a convencao de import "solta" do
+# projeto (ex.: `from tools import ...`, `from search import retrieve`) tambem
+# sob pytest. Em producao, um script executado direto (python scripts/x.py)
+# ja poe scripts/ no sys.path; aqui fazemos o mesmo para os testes.
 import sys
 from pathlib import Path
 
