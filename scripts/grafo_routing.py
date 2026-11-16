@@ -4,7 +4,7 @@ Cada funcao recebe o AgentContext e devolve o nome da proxima aresta.
 Sem LLM, sem banco, sem rede.
 """
 
-from scripts.state import AgentContext
+from state import AgentContext
 
 MAX_TENTATIVAS = 3
 
