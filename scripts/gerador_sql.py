@@ -20,13 +20,19 @@ from openai import OpenAI
 
 LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-# 700, não um valor curto: o gpt-oss-20b gasta tokens no canal de raciocínio
-# interno antes do conteúdo final (mesmo artefato visto no agent.py da E4 e
-# no orquestrador.py da E5 - lição carregada de lá), e aqui a resposta final
-# é uma consulta SQL inteira, não uma palavra só, então o limite precisa de
-# bem mais folga do que os 150 do orquestrador para não truncar
-# message.content antes do SELECT sair.
-MAX_TOKENS = 700
+# 1500, não 700: a bateria de testes de integração real (Task 5.5,
+# docs/e5_testes_integracao.jsonl) mostrou que 700 ainda truncava a
+# resposta antes do SELECT saír inteiro em perguntas mais complexas -
+# todas as 8 rejeições do Validador registradas na bateria eram, na
+# verdade, saída vazia/truncada do gerador ("Esperado exatamente 1
+# instrucao SQL, encontrado 0" ou erro de parse por SQL cortado no meio),
+# nenhuma era uma violação real de schema/tipo de statement. Mesmo
+# artefato de canal de raciocínio interno visto no agent.py da E4 e no
+# orquestrador.py da E5 - lição carregada de lá -, só que aqui a resposta
+# final é uma consulta SQL inteira (às vezes com múltiplas CTEs), não uma
+# palavra só, então precisa de bem mais folga do que os 150 do
+# orquestrador.
+MAX_TOKENS = 1500
 TEMPERATURE = 0.2
 
 GERADOR_SQL_SYSTEM_PROMPT = """\
@@ -48,7 +54,10 @@ seller_state) - a tabela dw.orders NÃO tem essas colunas.
 Regras que você deve seguir sempre:
 1. Use só o schema dw, baseando a fórmula e os filtros obrigatórios no \
 contexto do dicionário semântico recebido - nunca escreva uma fórmula de \
-memória, mesmo que pareça óbvia, se ela não estiver no contexto.
+memória, mesmo que pareça óbvia, se ela não estiver no contexto. Pelo \
+mesmo motivo, nunca invente nome de tabela ou de coluna que não esteja no \
+contexto do dicionário semântico recebido ou na regra de localização \
+abaixo - toda consulta tem que referenciar ao menos uma tabela real de dw.*.
 2. Escreva só um comando de leitura, começando por SELECT ou WITH. Nunca \
 escreva INSERT, UPDATE, DELETE, DROP ou qualquer outro comando de escrita.
 3. Devolva só o SQL puro, sem markdown, sem crases (```), sem comentários, \
@@ -92,7 +101,23 @@ def gerar_sql(
         temperature=TEMPERATURE,
         max_tokens=MAX_TOKENS,
     )
-    conteudo = (completion.choices[0].message.content or "").strip()
+    escolha = completion.choices[0]
+    conteudo = (escolha.message.content or "").strip()
+
+    # finish_reason == "length" é um modo de falha diferente de uma
+    # resposta vazia/truncada por outro motivo: o MAX_TOKENS acabou antes
+    # do modelo terminar o SELECT. Isso não deve "parecer" uma resposta
+    # saudável igual a uma string vazia comum (achado da revisão final:
+    # era exatamente essa truncagem, não uma violação real de schema, que
+    # causava toda rejeição do Validador na bateria de integração) - loga
+    # no próprio conteúdo retornado pra quem for investigar o
+    # erro_anterior/motivo_rejeicao no historico não confundir isso com
+    # "a LLM simplesmente não respondeu nada".
+    if escolha.finish_reason == "length" and not conteudo:
+        conteudo = (
+            "-- ERRO: resposta truncada por limite de tokens (finish_reason=length), "
+            "sem SQL completo gerado"
+        )
 
     # Mesmo artefato de canal interno visto no agent.py (E4) e no
     # orquestrador.py (E5): a LLM as vezes cola algo como

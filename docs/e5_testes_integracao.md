@@ -201,6 +201,22 @@ primeira passada — todas gravadas em
   para confirmar o ramo de código "0 linhas" de verdade (ver seção do
   cenário 7 acima).
 
+## Nota adicionada numa revisão final do branch: causa real das rejeições do Validador
+
+Todas as 8 rejeições do Validador registradas nos cenários acima (contadas nos
+históricos como `Esperado exatamente 1 instrucao SQL, encontrado 0`, ou como
+erro de parse por SQL cortado no meio) foram causadas por saída vazia/truncada
+do `gerador_sql.py` — o `MAX_TOKENS = 700` daquele agente ainda era insuficiente
+para perguntas mais complexas, cortando a resposta antes do `SELECT` sair por
+completo. **Nenhuma** das rejeições foi o Validador rejeitando por uma violação
+real de schema/tipo de statement (tabela fora de `dw`, comando de escrita,
+etc.) — nesse sentido, a bateria não chegou a exercitar essa parte do
+Validador em uma rejeição real. Isso foi corrigido depois (`MAX_TOKENS` subiu
+para 1500 em `gerador_sql.py`, mesmo padrão já usado em `orquestrador.py`); a
+bateria registrada aqui **não foi re-executada** após a correção (custo de
+latência, ~130-180s por chamada de LLM) — este parágrafo só corrige a
+caracterização do que os dados já registrados mostram.
+
 ## Bug encontrado e corrigido durante esta task
 
 `scripts/run_e5_tests.py` originalmente quebrava ao serializar o primeiro

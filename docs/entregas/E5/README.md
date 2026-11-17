@@ -26,7 +26,7 @@ Design completo (intenção, goals, non-goals, decisões fechadas antes de imple
 | Orquestrador | [`scripts/orquestrador.py`](../../../scripts/orquestrador.py) | Classifica a pergunta em `definicao` / `dado` / `ambas` / `esclarecimento` (uma chamada de LLM dedicada, não heurística por palavra-chave) |
 | Semântico/RAG | [`scripts/semantico_rag.py`](../../../scripts/semantico_rag.py) | Busca no dicionário semântico (schema `rag`) o contexto relevante para a pergunta, reaproveitando `retrieve()` da E3 |
 | Gerador de SQL | [`scripts/gerador_sql.py`](../../../scripts/gerador_sql.py) | Escreve o SQL a partir do contexto do RAG, reagindo a um `erro_anterior` (de validação ou de execução) quando existe |
-| Validador | [`scripts/validador.py`](../../../scripts/validador.py) | Análise estática determinística do SQL via `sqlglot` (árvore real, não regex): só `SELECT`, só tabelas `dw.*`, sem sub-statements perigosos |
+| Validador | [`scripts/validador.py`](../../../scripts/validador.py) | Análise estática determinística do SQL via `sqlglot` (árvore real, não regex): só `SELECT`/`WITH`/`UNION`/`EXCEPT`/`INTERSECT`, só tabelas `dw.*` (com pelo menos uma referenciada), sem `INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP` em nenhum nível da árvore (inclusive escondido dentro de uma CTE) e sem `SELECT ... INTO` |
 | Execução e Resposta | [`scripts/execucao_resposta.py`](../../../scripts/execucao_resposta.py) | Roda o SQL aprovado (role `agente_leitura`, a mesma da E4) e escreve a resposta final em português, citando a fonte |
 
 **Prova de que cada um funciona isolado:** script
@@ -48,6 +48,19 @@ relacionada, com o mesmo nome de uma tabela de verdade fora do schema `dw`, enga
 checagem e passava `ok=True` — reproduzido com 2 SQLs de ataque antes da correção.
 Corrigido escopando a busca de nomes de CTE só ao `WITH` de topo, com teste de
 regressão cobrindo o caso de ataque.
+
+**Segundo bypass encontrado e corrigido numa revisão final do branch:** a regra
+"só `SELECT`" checava apenas se o statement de topo (ou o `SELECT` interno de
+um `WITH`) era um `exp.Select`, sem olhar a árvore inteira — isso deixava
+passar um `INSERT`/`UPDATE`/`DELETE` escondido dentro de uma CTE com
+`RETURNING` (ex.: `WITH x AS (DELETE FROM dw.orders RETURNING *) SELECT * FROM
+x`) e um `SELECT ... INTO` (que cria tabela nova). Corrigido com uma busca por
+`exp.Insert`/`exp.Update`/`exp.Delete`/`exp.Merge`/`exp.Create`/`exp.Drop` em
+qualquer nível da árvore e uma checagem dedicada de `args["into"]`, com testes
+de regressão para os dois ataques. A mesma revisão também endureceu a regra do
+schema `dw`: antes bastava não ter nenhuma tabela fora de `dw`, o que deixava
+passar uma consulta sem nenhuma tabela real (ex.: `SELECT 'texto' AS msg`);
+agora é exigida ao menos uma tabela `dw.*` referenciada.
 
 ## 5.2 Orquestração implementada
 
@@ -142,6 +155,15 @@ Nenhum dos dois achados acima (#5 e #7) foi maquiado para parecer "passou" — e
 documentados como lacunas de cobertura reais em
 [`docs/e5_testes_integracao.md`](../../e5_testes_integracao.md), que é o relatório
 completo com o histórico passo a passo de cada cenário.
+
+**Correção adicionada numa revisão final do branch:** todas as rejeições do
+Validador registradas na bateria (contadas nos históricos como "0 instruções
+SQL") foram causadas por saída vazia/truncada do `gerador_sql.py` por limite de
+tokens (`MAX_TOKENS = 700` insuficiente para perguntas complexas) — nenhuma foi
+o Validador rejeitando uma violação real de schema/tipo de statement. Isso foi
+corrigido depois (`MAX_TOKENS` subiu para 1500); a bateria registrada **não**
+foi re-executada após a correção (custo de latência), então os números acima
+seguem sendo os mesmos, só com a causa das rejeições corretamente atribuída.
 
 ## O que este sistema ainda não é
 
