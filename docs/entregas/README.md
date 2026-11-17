@@ -10,7 +10,7 @@ relatórios que os scripts geram, exemplos de execução reais).
 | [E2](E2/README.md) | Infraestrutura e Ingestão de Dados | Dados | 26/10 – 30/10 | ✅ Concluída |
 | [E3](E3/README.md) | Pipeline RAG Funcional | RAG | 03/11 – 06/11 | ✅ Concluída |
 | [E4](E4/README.md) | Primeiro Agente Funcional | Agente | 09/11 – 13/11 | ✅ Concluída |
-| E5 | Sistema Multi-Agente Orquestrado | Orquestração | 16/11 – 19/11 | ⏳ Em breve |
+| [E5](E5/README.md) | Sistema Multi-Agente Orquestrado | Orquestração | 16/11 – 19/11 | ✅ Concluída |
 | E6 | API e Interface do Usuário | Interface | 23/11 – 27/11 | ⏳ Em breve |
 | E7 | Testes, Avaliação e Documentação | Qualidade | 30/11 – 04/12 | ⏳ Em breve |
 | — | Apresentação Final | Showcase | 08/12 – 11/12 | ⏳ Em breve |
