@@ -81,7 +81,11 @@ def executar_sql(sql: str) -> tuple[dict | None, str | None]:
         with psycopg.connect(agent_database_url()) as conn:
             conn.read_only = True
             with conn.cursor() as cur:
-                cur.execute(f"SELECT * FROM ({sql}) AS consulta LIMIT {MAX_ROWS}")
+                # Quebra de linha antes do ")" de fechamento: se `sql`
+                # terminar com um comentário de linha ("-- algo"), sem essa
+                # quebra o "--" engoliria o ")" (e o resto da linha),
+                # quebrando o wrapper inteiro.
+                cur.execute(f"SELECT * FROM ({sql}\n) AS consulta LIMIT {MAX_ROWS}")
                 columns = [d.name for d in cur.description]
                 rows = cur.fetchall()
     except psycopg.Error as exc:

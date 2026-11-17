@@ -67,7 +67,7 @@ CENARIOS = [
     (6, "esgotado",
      "Qual foi a margem de lucro líquida por categoria de produto no "
      "último trimestre, considerando o CMV e as despesas de marketing?",
-     "margem de contribuição é métrica indisponível no dicionário (sem "
+     "margem de lucro líquida é métrica indisponível no dicionário (sem "
      "tabela correspondente) - tenta esgotar as 3 tentativas sem nunca "
      "conseguir um SQL válido e executável"),
     (7, "sem_resultado",
@@ -79,6 +79,13 @@ CENARIOS = [
 
 def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    # Trunca o arquivo no inicio de cada execucao da bateria: sem isso, uma
+    # nova rodada so acrescentaria registros ao .jsonl ja publicado em vez
+    # de substitui-lo, misturando execucoes diferentes no mesmo arquivo de
+    # evidencia. Dentro do loop abaixo continuamos abrindo em modo "a"
+    # (append), que e o que da a seguranca contra crash/corte no meio de
+    # uma bateria longa - so o inicio da bateria toda e que reseta.
+    OUTPUT.write_text("", encoding="utf-8")
     inicio = time.perf_counter()
 
     for cenario_id, categoria, pergunta, objetivo in CENARIOS:
