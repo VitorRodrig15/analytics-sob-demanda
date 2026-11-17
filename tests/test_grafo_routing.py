@@ -1,6 +1,6 @@
 # tests/test_grafo_routing.py
-from scripts.state import AgentContext
-from scripts.grafo_routing import (
+from state import AgentContext
+from grafo_routing import (
     rotear_apos_orquestrador, rotear_apos_semantico,
     rotear_apos_validador, rotear_apos_execucao,
 )

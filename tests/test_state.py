@@ -1,5 +1,5 @@
 # tests/test_state.py
-from scripts.state import AgentContext
+from state import AgentContext
 
 def test_agent_context_defaults():
     ctx = AgentContext(pergunta="qual a receita de 2017?")

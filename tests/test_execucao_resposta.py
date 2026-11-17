@@ -1,5 +1,5 @@
 # tests/test_execucao_resposta.py
-from scripts.execucao_resposta import executar_sql
+from execucao_resposta import executar_sql
 
 
 def test_executar_sql_sucesso():
