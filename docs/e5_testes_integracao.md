@@ -22,11 +22,11 @@ o NVIDIA/OpenAI endpoint e o Postgres do container.
 | Critério | Resultado |
 |---|---|
 | Contexto relevante (RAG trouxe o trecho certo quando aplicável) | 7/7 |
-| Roteou pela aresta/intenção certa | 7/7 (ver nota sobre cenários 4/5/6 trocados) |
+| Roteou pela aresta/intenção certa | 7/7 — mas 2 comportamentos-alvo saíram em perguntas trocadas entre si: cenários 4 e 6 inverteram papéis (ver nota abaixo); cenário 5 é um caso **diferente e não relacionado**, uma lacuna de cobertura própria (não trocou com nada, só não fechou o loop de execução a tempo — ver cenário 5) |
 | Resposta correta/completa | 7/7 |
 | Citou a fonte (quando usou o dicionário semântico) | 7/7 (100% do que era aplicável) |
 | Números inventados | 0/7 |
-| Terminou graciosamente sem travar (casos de erro/esgotado) | 3/3 (cenários 4, 5b e a tentativa esgotada de fato) |
+| Terminou graciosamente sem travar (casos de erro/esgotado) | 2/2 — os 2 cenários que de fato esgotaram tentativas (cenário 4 e o retry 5b) |
 | Loop de correção do Validador disparou de verdade | ✅ (cenários 5 e 6) |
 | Loop de correção da Execução disparou de verdade | ✅ (cenário 5b) |
 
