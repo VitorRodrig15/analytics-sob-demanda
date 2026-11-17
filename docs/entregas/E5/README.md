@@ -2,187 +2,204 @@
 
 **Período:** 17/11 a 21/11/2026 · **Foco:** Orquestração · **Status:** ✅ Concluída
 
-Entregáveis 5.1 a 5.5: os 5 agentes especializados da arquitetura da E1 materializados
-como módulos separados, um grafo LangGraph de verdade coordenando o fluxo entre eles,
-um Validador determinístico (`sqlglot`, sem LLM), um loop de correção formal, uma
-demonstração ponta a ponta e uma bateria de testes de integração do grafo completo.
+Esta entrega cobre os itens 5.1 a 5.5: peguei os 5 agentes especializados que desenhei
+lá na E1 e finalmente os construí separados de verdade, liguei todos num grafo
+LangGraph de verdade, escrevi um Validador que analisa o SQL sem depender de LLM
+nenhuma, montei o loop de correção formal entre eles, e documentei tudo com uma
+demonstração ponta a ponta e uma bateria de testes de integração.
 
-A virada desta entrega, em relação à E4: lá, **um agente só** misturava, num único
-prompt, o papel do Agente Semântico/RAG e do Agente de Execução, decidindo tudo via
-tool calling solto. Aqui, os 5 agentes desenhados na E1 (Orquestrador, Semântico/RAG,
-Gerador de SQL, Validador, Execução e Resposta) existem como peças separadas e
-testáveis isoladamente, com um estado compartilhado (`AgentContext`) passando de nó em
-nó dentro de um `StateGraph` real, e um Validador que analisa o SQL de forma
-determinística — não só confiando no prompt, porque a E4 já mostrou que o modelo nem
-sempre segue 100% as regras escritas.
+A diferença em relação à E4 é essa: lá eu tinha **um agente só**, que misturava num
+único prompt o papel do Agente Semântico/RAG e do Agente de Execução, decidindo tudo
+via tool calling solto. Funcionava, mas não era a arquitetura que eu tinha desenhado na
+E1. Agora os 5 agentes (Orquestrador, Semântico/RAG, Gerador de SQL, Validador,
+Execução e Resposta) são módulos separados, cada um testável sozinho, com um estado
+compartilhado (`AgentContext`) passando de nó em nó dentro de um `StateGraph` de
+verdade. E o Validador analisa o SQL de forma determinística, sem confiar só no
+prompt — a E4 já tinha me mostrado que o modelo nem sempre segue 100% as regras
+escritas, então aqui ele não é a única linha de defesa.
 
-Design completo (intenção, goals, non-goals, decisões fechadas antes de implementar):
-[`docs/entregas/E5/design.md`](design.md).
+O design completo, com a intenção, os goals/non-goals e as decisões que fechei antes
+de começar a codar, está em [`docs/entregas/E5/design.md`](design.md).
+
+## Apresentação desta entrega
+
+- [Ver o código-fonte no GitHub](../../apresentacoes/apresentacao_E5/apresentacao_E5.html)
+- [Baixar só a apresentação (.zip)](../../apresentacoes/apresentacao_E5.zip) — baixa e extraia para abrir o `.html` localmente, sem clonar o repositório inteiro
 
 ## 5.1 Demais agentes implementados
 
 | Agente | Script | Responsabilidade |
 |---|---|---|
 | Orquestrador | [`scripts/orquestrador.py`](../../../scripts/orquestrador.py) | Classifica a pergunta em `definicao` / `dado` / `ambas` / `esclarecimento` (uma chamada de LLM dedicada, não heurística por palavra-chave) |
-| Semântico/RAG | [`scripts/semantico_rag.py`](../../../scripts/semantico_rag.py) | Busca no dicionário semântico (schema `rag`) o contexto relevante para a pergunta, reaproveitando `retrieve()` da E3 |
-| Gerador de SQL | [`scripts/gerador_sql.py`](../../../scripts/gerador_sql.py) | Escreve o SQL a partir do contexto do RAG, reagindo a um `erro_anterior` (de validação ou de execução) quando existe |
-| Validador | [`scripts/validador.py`](../../../scripts/validador.py) | Análise estática determinística do SQL via `sqlglot` (árvore real, não regex): só `SELECT`/`WITH`/`UNION`/`EXCEPT`/`INTERSECT`, só tabelas `dw.*` (com pelo menos uma referenciada), sem `INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP` em nenhum nível da árvore (inclusive escondido dentro de uma CTE) e sem `SELECT ... INTO` |
+| Semântico/RAG | [`scripts/semantico_rag.py`](../../../scripts/semantico_rag.py) | Busca no dicionário semântico (schema `rag`) o contexto relevante para a pergunta, reaproveitando o `retrieve()` que já tinha da E3 |
+| Gerador de SQL | [`scripts/gerador_sql.py`](../../../scripts/gerador_sql.py) | Escreve o SQL a partir do contexto do RAG, e reage quando existe um erro da tentativa anterior (de validação ou de execução) |
+| Validador | [`scripts/validador.py`](../../../scripts/validador.py) | Análise estática determinística via `sqlglot` — a árvore real do SQL, não regex. Só aceita `SELECT`/`WITH`/`UNION`/`EXCEPT`/`INTERSECT`, exige pelo menos uma tabela `dw.*` referenciada, e rejeita qualquer `INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP` em qualquer nível da árvore — mesmo escondido dentro de uma CTE — e qualquer `SELECT ... INTO` |
 | Execução e Resposta | [`scripts/execucao_resposta.py`](../../../scripts/execucao_resposta.py) | Roda o SQL aprovado (role `agente_leitura`, a mesma da E4) e escreve a resposta final em português, citando a fonte |
 
-**Prova de que cada um funciona isolado:** script
-[`scripts/testar_agentes_individuais.py`](../../../scripts/testar_agentes_individuais.py),
-relatório em [`docs/e5_testes_agentes_individuais.md`](../../e5_testes_agentes_individuais.md).
-7 chamadas reais de LLM contra os 3 agentes que só são testáveis com LLM (Orquestrador,
-Gerador de SQL, Execução e Resposta) — Validador e Semântico/RAG já tinham prova própria
-nas Tasks 2 e 4. Resultado final: **7/7 ✅**, depois de um round de correção: o caso G2
-(reação a `erro_anterior`) inicialmente usava um erro sintético que a query nem
-referenciava e não provava reação nenhuma; regerado com um erro amarrado ao filtro de
-data real usado pela query, o novo SQL reagiu de forma visível
+Pra provar que cada agente funciona isolado, sem depender do grafo, escrevi o
+[`scripts/testar_agentes_individuais.py`](../../../scripts/testar_agentes_individuais.py)
+— 7 chamadas reais de LLM contra os 3 agentes que só dá pra testar com LLM de verdade
+(Orquestrador, Gerador de SQL, Execução e Resposta; o Validador e o Semântico/RAG já
+tinham prova própria das Tasks 2 e 4). O relatório completo está em
+[`docs/e5_testes_agentes_individuais.md`](../../e5_testes_agentes_individuais.md).
+Fechou em **7/7 ✅**, mas só depois de uma correção: o primeiro caso que testava a
+reação do Gerador de SQL a um erro anterior usava um erro sintético que a query nem
+sequer referenciava, então não provava nada de verdade. Regerei com um erro amarrado
+ao filtro de data que a query realmente usa, e aí o SQL reagiu de forma visível
 (`EXTRACT(YEAR FROM ...) = 2017`).
 
-**Achado que vale registrar:** durante a construção do Validador foi encontrado e
-corrigido um bypass de segurança real — a exclusão de nomes de CTE usava
-`find_all(exp.CTE)` sobre a árvore inteira em vez de ficar escopada ao `WITH` que de
-fato envolve a tabela sendo checada, então um CTE dentro de uma subquery não
-relacionada, com o mesmo nome de uma tabela de verdade fora do schema `dw`, enganava a
-checagem e passava `ok=True` — reproduzido com 2 SQLs de ataque antes da correção.
-Corrigido escopando a busca de nomes de CTE só ao `WITH` de topo, com teste de
-regressão cobrindo o caso de ataque.
+Vale registrar dois achados de segurança no caminho. O primeiro apareceu ainda durante
+a construção do Validador: a lógica que excluía nomes de CTE usava `find_all(exp.CTE)`
+na árvore inteira, em vez de ficar restrita ao `WITH` que de fato envolvia a tabela
+sendo checada. Na prática, isso significava que um CTE dentro de uma subquery sem
+relação nenhuma, com o mesmo nome de uma tabela de verdade fora do schema `dw`,
+enganava a checagem e passava como válido — reproduzi com dois SQLs de ataque antes de
+corrigir. A correção foi escopar a busca de nomes de CTE só ao `WITH` de topo, com um
+teste de regressão cobrindo o ataque.
 
-**Segundo bypass encontrado e corrigido numa revisão final do branch:** a regra
-"só `SELECT`" checava apenas se o statement de topo (ou o `SELECT` interno de
-um `WITH`) era um `exp.Select`, sem olhar a árvore inteira — isso deixava
-passar um `INSERT`/`UPDATE`/`DELETE` escondido dentro de uma CTE com
-`RETURNING` (ex.: `WITH x AS (DELETE FROM dw.orders RETURNING *) SELECT * FROM
-x`) e um `SELECT ... INTO` (que cria tabela nova). Corrigido com uma busca por
-`exp.Insert`/`exp.Update`/`exp.Delete`/`exp.Merge`/`exp.Create`/`exp.Drop` em
-qualquer nível da árvore e uma checagem dedicada de `args["into"]`, com testes
-de regressão para os dois ataques. A mesma revisão também endureceu a regra do
-schema `dw`: antes bastava não ter nenhuma tabela fora de `dw`, o que deixava
-passar uma consulta sem nenhuma tabela real (ex.: `SELECT 'texto' AS msg`);
-agora é exigida ao menos uma tabela `dw.*` referenciada.
+O segundo bypass só apareceu na revisão final do branch inteiro, depois que tudo já
+parecia pronto. A regra "só `SELECT`" checava apenas se o statement de topo (ou o
+`SELECT` interno de um `WITH`) era um `exp.Select`, sem olhar a árvore por inteiro —
+o que deixava passar um `INSERT`/`UPDATE`/`DELETE` escondido dentro de uma CTE com
+`RETURNING` (por exemplo, `WITH x AS (DELETE FROM dw.orders RETURNING *) SELECT * FROM
+x`) e também um `SELECT ... INTO`, que cria uma tabela nova. Corrigi com uma busca por
+qualquer `exp.Insert`/`exp.Update`/`exp.Delete`/`exp.Merge`/`exp.Create`/`exp.Drop` em
+qualquer nível da árvore, mais uma checagem dedicada pro `args["into"]`, com testes de
+regressão pros dois ataques. Aproveitei a mesma revisão pra endurecer a regra do schema
+`dw`: antes bastava não ter nenhuma tabela fora dele, o que deixava passar uma consulta
+sem nenhuma tabela real (tipo `SELECT 'texto' AS msg`); agora exijo pelo menos uma
+tabela `dw.*` de verdade.
 
 ## 5.2 Orquestração implementada
 
-**Script:** [`scripts/grafo.py`](../../../scripts/grafo.py) — monta um `StateGraph`
-(LangGraph) ligando os 5 agentes, com arestas condicionais decidindo o próximo nó a
-partir do estado (`scripts/grafo_routing.py` concentra as 4 funções `rotear_apos_*`).
-Toda rota termina em `execucao_resposta`, seja com dado real, só definição do RAG, um
-pedido de esclarecimento, ou uma explicação de falha.
+O [`scripts/grafo.py`](../../../scripts/grafo.py) monta um `StateGraph` do LangGraph
+ligando os 5 agentes, com arestas condicionais decidindo o próximo nó a partir do
+estado — as 4 funções `rotear_apos_*` que concentrei em
+`scripts/grafo_routing.py`. Toda rota termina em `execucao_resposta`, seja com dado
+real, só com a definição do RAG, um pedido de esclarecimento, ou uma explicação de
+falha.
 
-**Loop de correção:** um único contador de tentativas (`ctx.tentativas`), compartilhado
-entre os dois motivos de retorno ao Gerador de SQL — reprovação do Validador e erro de
-execução do Postgres — até um limite (`MAX_TENTATIVAS = 3`). Ao esgotar, o grafo roteia
-direto para `execucao_resposta` em modo "não consegui responder", em vez de tentar para
-sempre.
+O loop de correção usa um único contador de tentativas (`ctx.tentativas`),
+compartilhado entre os dois motivos que mandam de volta pro Gerador de SQL: uma
+reprovação do Validador ou um erro de execução do Postgres. Até um limite de 3
+tentativas (`MAX_TENTATIVAS`). Quando esgota, o grafo roteia direto pra
+`execucao_resposta` em modo "não consegui responder", em vez de tentar pra sempre.
 
-**Bug real achado e corrigido durante a construção (dry-run, antes do commit):** a
-aresta condicional de saída de `execucao_resposta` decidia END-vs-retentativa checando
-`ctx.erro_execucao`, que nunca era limpo no self-loop "esgotado" — isso causava um
-`GraphRecursionError` (loop infinito). Corrigido checando `ctx.resposta_final` (só
-setado depois que `responder()` de fato roda), mesmo princípio do `MAX_RODADAS` da E4
-que evita um loop sem fim.
+Achei um bug real ainda durante a construção, antes de commitar: a aresta condicional
+de saída de `execucao_resposta` decidia entre terminar ou tentar de novo checando
+`ctx.erro_execucao` — só que esse campo nunca era limpo no self-loop do caso
+"esgotado", e isso causava um `GraphRecursionError`, um loop infinito de verdade.
+Corrigi checando `ctx.resposta_final` em vez disso, que só fica preenchido depois que
+`responder()` realmente roda — o mesmo princípio do `MAX_RODADAS` que já usava na E4
+pra evitar um loop sem fim.
 
 ## 5.3 Gestão de estado
 
-**Script:** [`scripts/state.py`](../../../scripts/state.py) — dataclass `AgentContext`
-com a pergunta, a intenção classificada, o contexto do RAG, o SQL gerado, o resultado da
-validação (`validacao_ok`/`motivo_rejeicao`), o resultado da execução
+O [`scripts/state.py`](../../../scripts/state.py) define o `AgentContext`, a dataclass
+que carrega a pergunta, a intenção já classificada, o contexto do RAG, o SQL gerado, o
+resultado da validação (`validacao_ok`/`motivo_rejeicao`), o resultado da execução
 (`resultado_execucao`/`erro_execucao`), a resposta final, o contador de tentativas e o
-`historico` (log passo a passo de cada nó percorrido).
+`historico` — um log passo a passo de cada nó por onde a pergunta passou.
 
-Cada nó do grafo lê só os campos de que precisa, roda sua tarefa e devolve só os campos
-que mudou — o `StateGraph` do LangGraph (confirmado rodando, não assumido: a versão
-1.2.19 aceita o dataclass direto como schema) cuida de mesclar no estado global.
-`ctx.registrar()` é quem popula o `historico`, usado tanto na demonstração do 5.4
-quanto para os testes do 5.5 inspecionarem o caminho percorrido sem reconstruir logs
-externos. Um detalhe confirmado na revisão: no caminho de tentativas esgotadas por erro
-de execução, `execucao_resposta` aparece 2x no `historico` (uma pela tentativa que
-falhou, outra pela resposta final) — comportamento esperado, não uma duplicação
-indevida.
+Cada nó do grafo lê só os campos que precisa, faz sua parte, e devolve só o que mudou;
+quem cuida de mesclar isso de volta no estado global é o próprio `StateGraph` do
+LangGraph (e confirmei rodando, não assumi — a versão 1.2.19 aceita o dataclass direto
+como schema, sem precisar converter pra `TypedDict`). O `ctx.registrar()` é quem
+popula o `historico`, e é esse histórico que uso tanto na demonstração do 5.4 quanto
+nos testes do 5.5 pra inspecionar o caminho percorrido sem precisar reconstruir logs
+externos. Um detalhe que só confirmei na revisão: no caminho em que as tentativas se
+esgotam por erro de execução, `execucao_resposta` aparece duas vezes no `historico` —
+uma pela tentativa que falhou, outra pela resposta final. É esperado, não uma
+duplicação indevida.
 
 ## 5.4 Fluxo end-to-end do sistema
 
-Rodada manual real: `docker compose exec app python scripts/grafo.py "qual foi a
-receita de 2017?"`.
+Rodei de verdade: `docker compose exec app python scripts/grafo.py "qual foi a receita
+de 2017?"`.
 
-**Caminho percorrido (via `historico`):** orquestrador (classificou `dado`) →
-semântico_rag (trouxe 3 trechos do dicionário, incluindo "Receita") → gerador_sql →
-validador (aprovado de primeira) → execucao_resposta (executou o SQL e narrou o
-resultado).
+Pelo `historico`, o caminho foi: orquestrador classificou como `dado` → semântico_rag
+trouxe 3 trechos do dicionário, incluindo o de "Receita" → gerador_sql escreveu a
+consulta → validador aprovou de primeira → execucao_resposta rodou o SQL e narrou o
+resultado.
 
-**Resposta final:** **R$ 5.962.902,01**, com a fonte citada — mesmo valor reconfirmado
-depois, de forma independente, no cenário 1 da bateria de integração do 5.5.
+A resposta final veio **R$ 5.962.902,01**, com a fonte citada — o mesmo valor que
+reconfirmei depois, de forma independente, no primeiro cenário da bateria de
+integração do 5.5.
 
 ## 5.5 Testes de integração
 
-**Script:** [`scripts/run_e5_tests.py`](../../../scripts/run_e5_tests.py). Relatório:
-[`docs/e5_testes_integracao.md`](../../e5_testes_integracao.md). Resultados brutos (um
-`AgentContext` completo por linha, incluindo o `historico`):
+Escrevi o [`scripts/run_e5_tests.py`](../../../scripts/run_e5_tests.py) pra rodar 7
+cenários reais contra o grafo completo, sem mockar nenhuma chamada de LLM. O relatório
+está em [`docs/e5_testes_integracao.md`](../../e5_testes_integracao.md), e os
+resultados brutos — um `AgentContext` completo por linha, incluindo o `historico` — em
 [`docs/e5_testes_integracao.jsonl`](../../e5_testes_integracao.jsonl).
 
-Bateria de 7 cenários cobrindo toda a matriz de comportamento do grafo: caminho feliz
-com dado real, definição pura, pergunta ambígua (esclarecimento), Validador rejeita e
-corrige, execução falha e corrige, tentativas esgotadas, e consulta válida sem
-resultado. Nenhuma chamada de LLM foi mockada.
+Os 7 cenários cobrem toda a matriz de comportamento do grafo: caminho feliz com dado
+real, definição pura, pergunta ambígua (esclarecimento), Validador rejeitando e
+corrigindo, execução falhando e corrigindo, tentativas esgotadas, e uma consulta válida
+sem resultado nenhum.
 
-**Resultado honesto (não "7/7 perfeito"):**
-- **4 dos 7** cenários reproduziram exatamente como planejado: caminho feliz
-  (R$ 5.962.902,01, igual ao 5.4), definição pura, esclarecimento, e consulta sem
-  resultado (via um retry, ver abaixo).
-- **Cenários #4 e #6 trocaram de papel na prática:** a pergunta desenhada para
-  "Validador rejeita uma vez e corrige na segunda" (#4) na verdade esgotou as 3
-  tentativas sem nunca produzir SQL válido; a desenhada para "tentativas esgotadas"
-  (#6) foi rejeitada só uma vez e corrigida na segunda. Os dois comportamentos-alvo
-  foram observados de verdade, só não nas perguntas planejadas para cada um.
-- **Cenário #5 (execução falha e corrige) ficou só parcialmente provado:** a pergunta
-  original nunca chegou a falhar na execução (o Validador rejeitou antes, por erro de
-  sintaxe, e a correção seguinte já passou e executou com sucesso). Um retry (`5b`,
-  pedindo CNPJ/telefone de vendedor — campos que não existem no schema) disparou um
-  erro real de execução do Postgres (`column s.seller_cnpj does not exist`) na 3ª
-  tentativa, provando que a aresta de correção por erro de execução dispara de
-  verdade — mas essa já era a última tentativa do orçamento, então o grafo esgotou em
-  vez de corrigir com sucesso. Fica confirmado que o loop de execução dispara com um
-  erro real; não fica confirmado que ele corrige a tempo dentro de 3 tentativas.
-- **Cenário #7 precisou de um retry para exercer o código certo:** a pergunta original
-  devolveu 1 linha com valor `NULL` agregado (não lista vazia), então o ramo dedicado
-  "sem resultado" de `execucao_resposta.py` (`if not linhas`) nunca disparou — a
-  resposta correta veio do julgamento da própria LLM ao ver `None`, não do código
-  determinístico. Um retry (`7b`, filtro logicamente impossível) confirmou o ramo
-  dedicado de linhas vazias de verdade.
+E aqui prefiro ser direto: não foi "7/7 perfeito". Quatro dos sete cenários
+reproduziram exatamente como eu tinha planejado — caminho feliz (de novo R$
+5.962.902,01, batendo com o 5.4), definição pura, esclarecimento, e a consulta sem
+resultado (essa precisou de um retry, explico abaixo). Os outros três tiveram
+surpresas, porque a LLM não é determinística e as perguntas foram desenhadas pra
+*induzir* um caminho, não pra garantir:
 
-Nenhum dos dois achados acima (#5 e #7) foi maquiado para parecer "passou" — estão
-documentados como lacunas de cobertura reais em
-[`docs/e5_testes_integracao.md`](../../e5_testes_integracao.md), que é o relatório
-completo com o histórico passo a passo de cada cenário.
+- Os cenários #4 e #6 trocaram de papel na prática. A pergunta que eu tinha desenhado
+  pra mostrar "o Validador rejeita uma vez e corrige na segunda" (#4) na verdade
+  esgotou as 3 tentativas sem nunca produzir um SQL válido; e a que eu tinha desenhado
+  pra mostrar "tentativas esgotadas" (#6) foi rejeitada só uma vez e corrigiu na
+  segunda. Os dois comportamentos aconteceram de verdade — só não nas perguntas que eu
+  esperava.
+- O cenário #5, que devia provar "a execução falha e corrige", ficou só parcialmente
+  provado. A pergunta original nunca chegou a falhar na execução — o Validador rejeitou
+  antes, por um erro de sintaxe, e a correção seguinte já passou direto. Fiz um retry
+  (pedindo CNPJ e telefone de vendedor, campos que não existem no schema) e aí sim
+  disparou um erro real do Postgres na terceira tentativa — mas essa já era a última do
+  orçamento, então o grafo esgotou em vez de corrigir a tempo. Fica confirmado que o
+  loop de correção por erro de execução dispara de verdade; não fica confirmado que ele
+  consegue corrigir dentro de 3 tentativas.
+- O cenário #7 precisou de um retry pra exercer o código certo. A pergunta original
+  devolveu uma linha com valor `NULL` agregado, não uma lista vazia — então o ramo
+  dedicado pra "sem resultado" em `execucao_resposta.py` nunca chegou a disparar, e a
+  resposta correta saiu do próprio julgamento da LLM ao ver o `None`, não do código
+  determinístico. Um segundo retry, com um filtro logicamente impossível, confirmou o
+  ramo dedicado de verdade.
 
-**Correção adicionada numa revisão final do branch:** todas as rejeições do
-Validador registradas na bateria (contadas nos históricos como "0 instruções
-SQL") foram causadas por saída vazia/truncada do `gerador_sql.py` por limite de
-tokens (`MAX_TOKENS = 700` insuficiente para perguntas complexas) — nenhuma foi
-o Validador rejeitando uma violação real de schema/tipo de statement. Isso foi
-corrigido depois (`MAX_TOKENS` subiu para 1500); a bateria registrada **não**
-foi re-executada após a correção (custo de latência), então os números acima
-seguem sendo os mesmos, só com a causa das rejeições corretamente atribuída.
+Nenhum desses dois achados (#5 e #7) foi maquiado pra parecer que passou — estão
+documentados como lacunas de cobertura reais no relatório completo.
+
+E tem mais uma correção que só apareceu na revisão final do branch inteiro: todas as
+rejeições do Validador registradas na bateria (contadas nos históricos como "0
+instruções SQL") foram causadas por saída vazia ou truncada do `gerador_sql.py`, por
+causa do limite de tokens (`MAX_TOKENS = 700`, insuficiente pras perguntas mais
+complexas) — nenhuma delas foi o Validador rejeitando uma violação real de schema ou
+tipo de statement. Já corrigi isso (`MAX_TOKENS` subiu pra 1500), mas não re-executei a
+bateria inteira depois — o custo de latência não compensava. Os números acima
+continuam os mesmos; só a causa raiz das rejeições ficou corretamente atribuída.
 
 ## O que este sistema ainda não é
 
-- **Não tem API HTTP nem interface de usuário** — o grafo só é chamado por linha de
-  comando (`scripts/grafo.py`); expor isso como serviço é a E6.
-- **Não tem dataset/métricas de avaliação formal** — os testes aqui são uma bateria
-  pequena e curada (mesmo padrão de E1 a E4), não uma avaliação sistemática; isso é a
-  E7.
-- **Não tem esclarecimento multi-turno de verdade** — o fluxo de "esclarecimento" pede
-  o esclarecimento em texto e termina a execução ali, sem o usuário poder responder e o
-  grafo continuar de onde parou. Isso é decisão explícita de escopo (ver
-  "Decisões adicionais" em `design.md`): multi-turno real depende de API/UI, que é a
-  E6.
+Ainda não tem API nem interface de usuário — o grafo só é chamado por linha de
+comando. Expor isso como serviço é trabalho da E6.
+
+Também não tem um dataset ou métricas de avaliação formal; os testes aqui são uma
+bateria pequena e curada, do mesmo jeito que fiz de E1 a E4, não uma avaliação
+sistemática. Isso fica pra E7.
+
+E não tem um esclarecimento multi-turno de verdade: quando o fluxo cai em
+"esclarecimento", ele pede o esclarecimento em texto e termina ali, sem o usuário
+poder responder e o grafo continuar de onde parou. Isso foi decisão explícita de
+escopo (está nas "Decisões adicionais" do `design.md`) — multi-turno real depende de
+API/UI, que também é trabalho da E6.
 
 ## Limitação conhecida
 
-A latência do GPT-OSS-20B (~130-180s por chamada, documentada desde a E3) continua
-sendo a limitação principal — e aqui ela se multiplica: o caminho feliz completo
-(Orquestrador → Semântico/RAG → Gerador de SQL → Validador → Execução e Resposta) já
-soma **3 chamadas de LLM**, e cada volta do loop de correção soma mais uma. Isso é
-esperado desde o design (constraint já aceita) e segue sendo mitigado com testes em
-segundo plano e respostas pré-computadas para qualquer demonstração ao vivo.
+A latência do GPT-OSS-20B continua sendo o problema principal — e aqui ela se
+multiplica. Documentei desde a E3 que cada chamada leva de 130 a 180 segundos, e o
+caminho feliz completo (Orquestrador → Semântico/RAG → Gerador de SQL → Validador →
+Execução e Resposta) já soma 3 chamadas; cada volta do loop de correção soma mais uma.
+Isso é esperado desde o design, uma constraint que já tinha aceitado, e sigo mitigando
+do mesmo jeito: testes rodando em segundo plano e respostas pré-computadas pra qualquer
+demonstração ao vivo.
