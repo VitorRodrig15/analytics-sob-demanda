@@ -37,11 +37,14 @@ from tools import agent_database_url
 
 MAX_ROWS = 50  # mesmo limite de tool_consulta_banco (scripts/tools.py)
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 # 500, não um valor curto: mesmo artefato visto em agent.py (E4),
-# orquestrador.py e gerador_sql.py (E5) - o gpt-oss-20b gasta tokens no
-# canal de raciocínio interno antes do conteúdo final. Aqui a resposta é um
+# orquestrador.py e gerador_sql.py (E5) - a LLM gasta tokens no
+# canal de raciocínio interno antes do conteúdo final (era o gpt-oss-20b,
+# descontinuado em 18/11/2026; hoje é o
+# nvidia/nemotron-3-nano-omni-30b-a3b-reasoning - ver addendum no README
+# da E5). Aqui a resposta é um
 # texto narrativo em português (não uma palavra nem uma query), então
 # precisa de folga parecida com a do gerador_sql.py (700) para a parte
 # visível não truncar - 500 cobre uma resposta de algumas frases com sobra.

@@ -194,12 +194,77 @@ poder responder e o grafo continuar de onde parou. Isso foi decisão explícita 
 escopo (está nas "Decisões adicionais" do `design.md`) — multi-turno real depende de
 API/UI, que também é trabalho da E6.
 
+## Adendo (18/11/2026): o GPT-OSS-20B saiu do ar no meio da entrega
+
+No dia em que fui gravar a demonstração pra apresentar esta entrega, um colega me
+avisou que o modelo tinha sido desligado. Confirmei direto contra a API da NVIDIA: o
+`openai/gpt-oss-20b` — o modelo que todo o resto deste documento cita, e que gerou
+todos os números e exemplos acima — teve fim de vida às 08h UTC do próprio dia
+18/11/2026 (`Error code: 410`, `"has reached its end of life"`). Isso não é um erro
+de configuração nem algo que eu tivesse como prever: a NVIDIA descontinuou o modelo
+do lado deles, sem aviso prévio no meu fluxo de trabalho.
+
+Na prática, isso derrubava toda chamada de LLM do sistema — Orquestrador, Gerador de
+SQL, Execução e Resposta — mesmo com o código 100% correto. O Validador (determinístico,
+sem LLM) e a suíte `pytest` continuaram funcionando normalmente o tempo todo, já que não
+dependem de nenhuma chamada externa.
+
+**O que fiz:** consultei o catálogo de modelos disponíveis direto pela API (não por
+documentação, que podia estar desatualizada) e testei dois candidatos da família
+Nemotron da própria NVIDIA com prompts reais — incluindo um de geração de SQL, igual ao
+que o Gerador de SQL faz de verdade. Escolhi o `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`:
+respondeu corretamente nos testes, e separa o raciocínio interno (`reasoning_content`) do
+texto final (`content`) em campos diferentes da resposta — o mesmo tipo de canal de
+raciocínio que o GPT-OSS-20B já tinha, só que exposto de forma mais limpa.
+
+Troquei o `LLM_MODEL` padrão em todos os scripts que chamam a LLM (Orquestrador, Gerador
+de SQL, Execução e Resposta, mais os scripts de teste e os reaproveitados da E3/E4), no
+`.env` local e no `.env.example` versionado, reconstruí a imagem Docker (uma dependência,
+`sqlglot`, só estava instalada na imagem antiga de forma avulsa) e rodei de novo a suíte
+inteira: **32/32 testes automatizados passando**, a bateria dos 3 agentes com LLM
+(5.1) **7/7** de novo, e o fluxo end-to-end do 5.4 confirmado com o mesmo valor de antes
+(R$ 5.962.902,01).
+
+O ganho mais visível foi a latência: o que levava de 130 a 180 segundos por chamada
+agora leva de 1 a 8 segundos. Uma pergunta que antes demorava 6 a 9 minutos pra
+responder (3 chamadas de LLM) agora responde em 15 a 20 segundos. A bateria dos 7
+agentes individuais, que antes levava 15 a 25 minutos, rodou em 47 segundos.
+
+**Um achado real durante a re-verificação:** numa pergunta bem mais complexa (comparar
+receita por vendedor, por região, por trimestre, mais frete médio — vários agrupamentos
+ao mesmo tempo), o modelo novo gastou mais de 2200 tokens só "pensando" antes de montar
+o SQL, e o orçamento que eu tinha herdado do GPT-OSS-20B (`MAX_TOKENS = 1500` no Gerador
+de SQL) não foi suficiente, truncando a resposta e derrubando as 3 tentativas do loop de
+correção. Confirmei isolando a chamada e testando 1500/2500/4000 tokens de orçamento
+diretamente contra a API antes de mudar qualquer coisa, e subi o limite para `4000`.
+
+**Uma observação sem solução de código, só de infraestrutura:** o modelo de embeddings
+usado pelo RAG (`nvidia/nemotron-3.5-embed-1b`, inalterado por esta migração) "dorme"
+depois de um tempo sem uso no tier gratuito da NVIDIA, e a primeira chamada depois disso
+estoura o timeout de 60 segundos. Antes, isso passava quase despercebido porque as
+chamadas de LLM já eram lentas por padrão; agora que o resto ficou rápido, esse
+"despertar" do modelo de embeddings é, proporcionalmente, o maior ponto de instabilidade
+de latência do sistema. Pra qualquer demonstração ao vivo, vale fazer uma chamada de
+aquecimento antes.
+
+Por honestidade, registro também que, ao tentar re-rodar a bateria completa de
+integração (5.5) com os dois ajustes acima já aplicados, enfrentei instabilidade real da
+API da NVIDIA (timeouts repetidos, inclusive após reiniciar o container) — muito
+provavelmente por causa do volume alto de chamadas que eu mesmo fiz nesta janela curta,
+testando e comparando modelos. Não consegui fechar uma segunda rodada completa e limpa
+do 5.5 antes de fechar este adendo. O que tenho de verificação sólida: a suíte
+determinística (32/32), a bateria 5.1 (7/7, re-executada do zero com o modelo novo) e o
+fluxo 5.4 (confirmado duas vezes) — mais a correção pontual do achado acima, testada
+isoladamente e de forma repetível. Recomendo rodar o `scripts/run_e5_tests.py` mais uma
+vez, com calma, antes da apresentação, para ter o 5.5 atualizado também - os comandos
+estão documentados nos scripts, e o README antigo com os resultados do GPT-OSS-20B
+permanece no histórico do Git para comparação.
+
 ## Limitação conhecida
 
-A latência do GPT-OSS-20B continua sendo o problema principal — e aqui ela se
-multiplica. Documentei desde a E3 que cada chamada leva de 130 a 180 segundos, e o
-caminho feliz completo (Orquestrador → Semântico/RAG → Gerador de SQL → Validador →
-Execução e Resposta) já soma 3 chamadas; cada volta do loop de correção soma mais uma.
-Isso é esperado desde o design, uma constraint que já tinha aceitado, e sigo mitigando
-do mesmo jeito: testes rodando em segundo plano e respostas pré-computadas pra qualquer
-demonstração ao vivo.
+A latência deixou de ser o problema principal depois da migração acima — de 130-180s por
+chamada de LLM para 1-8s. O ponto de atenção agora é o "cold start" do modelo de
+embeddings do RAG (ver adendo acima): a primeira chamada depois de um tempo ocioso pode
+estourar 60 segundos de timeout. Mitigo com uma chamada de aquecimento antes de qualquer
+demonstração ao vivo - mesma lógica de precaução que já usava desde a E3, só que agora
+focada num ponto diferente do pipeline.

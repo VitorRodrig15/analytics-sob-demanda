@@ -1,5 +1,13 @@
 """Entregável 3.2 (E3) - Teste de conexão com a LLM (GPT-OSS-20B via NVIDIA NIM).
 
+ATUALIZAÇÃO (18/11/2026): o GPT-OSS-20B foi descontinuado pela NVIDIA nessa
+data (erro 410 - "reached its end of life"). A investigação de latência
+abaixo descreve o comportamento daquele modelo especifico e fica como
+registro historico. O LLM_MODEL padrão agora é o
+nvidia/nemotron-3-nano-omni-30b-a3b-reasoning, que resolveu o problema:
+~1-8s por chamada em vez de 130-180s, mesmo canal de raciocínio separado
+(reasoning_content) do GPT-OSS-20B. Ver addendum em docs/entregas/E5/README.md.
+
 Este script confirma uma coisa simples: que a chave da NVIDIA também
 funciona para conversar com a LLM, não só para gerar embeddings (que já
 usávamos desde a E2). É o "chamadas de teste bem-sucedidas" que o
@@ -31,7 +39,7 @@ import time
 
 from openai import OpenAI
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 LATENCIA_ESPERADA_SEGUNDOS = (130, 180)  # ver investigacao no docstring acima
 

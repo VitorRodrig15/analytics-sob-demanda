@@ -1,10 +1,16 @@
 # 5.1 - Prova de que os 3 agentes com LLM funcionam isolados
 
-7 chamadas reais de LLM (NVIDIA NIM, gpt-oss-20b) contra os 3 agentes que ainda não tinham sido comprovados "testáveis sozinhos" pelas Tasks anteriores: Orquestrador (3 casos), Gerador de SQL (2 casos) e Execução e Resposta (2 casos). O Validador (Task 2) e o Agente Semântico/RAG (Task 4) já ficaram comprovados pelas baterias daquelas tasks.
+7 chamadas reais de LLM (NVIDIA NIM, nvidia/nemotron-3-nano-omni-30b-a3b-reasoning) contra os 3 agentes que ainda não tinham sido comprovados "testáveis sozinhos" pelas Tasks anteriores: Orquestrador (3 casos), Gerador de SQL (2 casos) e Execução e Resposta (2 casos). O Validador (Task 2) e o Agente Semântico/RAG (Task 4) já ficaram comprovados pelas baterias daquelas tasks.
 
-Bateria completa rodada em 18.5 min.
+Bateria completa rodada em 0.7 min.
 
 Avaliação (✅/❌/⚠️) é um primeiro julgamento de quem rodou o script - a correção final de julgamento humano é do responsável pela E5, mesmo padrão das entregas anteriores.
+
+**Re-execução pós-migração de modelo (18/11/2026):** o `gpt-oss-20b` foi descontinuado pela
+NVIDIA nesse mesmo dia; esta bateria foi rodada de novo contra o substituto
+(`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`) para confirmar que os 5 agentes continuam
+se comportando corretamente. Ver o addendum em `docs/entregas/E5/README.md` para o relato
+completo do imprevisto.
 
 ## Resumo
 
@@ -14,14 +20,12 @@ Avaliação (✅/❌/⚠️) é um primeiro julgamento de quem rodou o script - 
 | O2 | Orquestrador | ✅ |
 | O3 | Orquestrador | ✅ |
 | G1 | Gerador de SQL | ✅ |
-| G2 | Gerador de SQL | ✅ (regerado - ver nota de revisão abaixo) |
+| G2 | Gerador de SQL | ✅ |
 | R1 | Execução e Resposta | ✅ |
 | R2 | Execução e Resposta | ✅ |
 
-7/7 ✅. O Caso G2 foi regerado após revisão: a primeira versão usava um `erro_anterior` sobre
-uma coluna (`customer_city`) que a query de receita nunca referenciava, então não provava
-reação nenhuma - a nova versão usa um erro amarrado ao filtro de data que o SQL de G1 de
-fato usa, e o resultado mudou de forma visível e correta (ver caso G2 abaixo).
+7/7 ✅ com o modelo novo - mesmo resultado da bateria original (Task 5.1), sem regressão
+nenhuma percebida no comportamento dos agentes.
 
 ## Caso O1: definicao - Orquestrador (classificar_intencao)
 
@@ -82,7 +86,7 @@ erro_anterior = None
 
 **Saída real:**
 ```
-SELECT ROUND(SUM(oi.price), 2) AS receita
+SELECT ROUND(SUM(oi.price),2) AS receita
 FROM dw.orders o
 JOIN dw.order_items oi ON oi.order_id = o.order_id
 WHERE o.order_status = 'delivered'
@@ -93,12 +97,6 @@ WHERE o.order_status = 'delivered'
 **Avaliação:** ✅ SQL plausível - usa o schema `dw`, filtra por `order_status = 'delivered'` e pelo intervalo de 2017, baseado no chunk de contexto recuperado. Não foi executado neste script (isso é papel do Agente de Execução, Caso R), só avaliado como SQL plausível/bem formado.
 
 ## Caso G2: com erro_anterior - Gerador de SQL (gerar_sql)
-
-**Nota de revisão:** a primeira versão deste caso usava `erro_anterior = 'column
-"orders.customer_city" does not exist'` - uma coluna que o SQL de G1 nunca referenciava, então
-a saída ficou praticamente idêntica a G1 (só espaçamento mudou) e o caso não provava a reação
-ao erro. Regerado com um `erro_anterior` amarrado a algo que o SQL de G1 de fato usa (o filtro
-de data por intervalo).
 
 **Entrada:**
 ```
@@ -116,11 +114,7 @@ WHERE o.order_status = 'delivered'
   AND EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2017;
 ```
 
-**Avaliação:** ✅ Agora o caso prova de fato a reação ao `erro_anterior`: o modelo trocou
-exatamente o que o erro pediu - o filtro por intervalo (`>= '2017-01-01' AND < '2018-01-01'`)
-foi reescrito para `EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2017`, mantendo o resto da
-consulta (schema `dw`, join com `order_items`, filtro `order_status = 'delivered'`) igual ao
-de G1. Mudança visível, correta e diretamente ligada à instrução do erro simulado.
+**Avaliação:** ✅ O modelo reagiu exatamente ao que o erro pediu - o filtro por intervalo (`>= '2017-01-01' AND < '2018-01-01'`) foi reescrito para `EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2017`, mantendo o resto da consulta (schema `dw`, join com `order_items`, filtro `order_status = 'delivered'`) igual ao de G1. Mudança visível, correta e diretamente ligada à instrução do erro simulado.
 
 ## Caso R1: resultado real (linhas não vazias) - Execução e Resposta (responder)
 
@@ -134,10 +128,10 @@ ctx.resultado_execucao (via executar_sql real) = {'colunas': ['total_pedidos'], 
 
 **Saída real:**
 ```
-**Quantidade de pedidos na base:** 99.441 (segundo o resultado da consulta ao banco).
+De acordo com o campo **total_pedidos**, existem **99.441** pedidos na base.
 ```
 
-**Avaliação:** ✅ Resposta coerente e correta - usa exatamente o número que veio de `executar_sql` (99.441), sem inventar nada.
+**Avaliação:** ✅ Narrativa correta, cita o número exato do resultado real executado no banco.
 
 ## Caso R2: resultado_execucao['linhas'] == [] - Execução e Resposta (responder)
 
@@ -151,7 +145,7 @@ ctx.resultado_execucao (sintético) = {'colunas': ['receita'], 'linhas': [], 'to
 
 **Saída real:**
 ```
-Não foram encontrados resultados para a categoria **'inexistente_xyz'** em 2018.
+Não foram encontrados resultados para a pergunta sobre a receita de vendas de produtos na categoria 'inexistente_xyz' em 2018.
 ```
 
-**Avaliação:** ✅ Resposta correta - segue a regra 3 do prompt (resultado vazio = dizer claramente que não foi encontrado, nunca afirmar que o valor é zero ou inventar número).
+**Avaliação:** ✅ Tratou corretamente o caso de lista vazia, sem inventar número nenhum.

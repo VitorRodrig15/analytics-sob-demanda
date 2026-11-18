@@ -483,6 +483,61 @@ Fonte: "Qual foi a receita total em 2017?" (dicionario semantico).</pre>
     </div>
   </section>
 
+  <section class="slide" data-badge="imprevisto :: migracao de modelo">
+    <h2 class="slide-head">adendo — o GPT-OSS-20B saiu do ar no meio da entrega</h2>
+    <p class="slide-sub">18/11/2026: a NVIDIA descontinuou o modelo que todo o resto desta apresentação usa — migração, achado real e correção, tudo documentado</p>
+
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat"><div class="num">410</div><div class="lbl">erro da NVIDIA: "has reached its end of life" às 08h UTC do dia 18/11</div></div>
+      <div class="stat"><div class="num">130-180s &#8594; 1-8s</div><div class="lbl">latência por chamada de LLM, antes e depois da migração</div></div>
+      <div class="stat"><div class="num">32/32 + 7/7</div><div class="lbl">testes re-executados do zero com o modelo novo, sem regressão</div></div>
+    </div>
+
+    <div class="shot" style="margin-bottom:20px">
+      <pre class="term"><span class="l-cmd">$ docker compose exec app python scripts/test_llm.py</span>
+
+<span class="l-bad">openai.APIStatusError: Error code: 410</span>
+detail: "The model 'openai/gpt-oss-20b' has reached its end of
+life on 2026-11-18T08:00:00Z and is no longer available."
+
+<span class="l-cmd">$ # pesquisei o catalogo real via API, testei 2 candidatos com</span>
+<span class="l-cmd">$ # prompts reais (classificacao + geracao de SQL), escolhi:</span>
+<span class="l-ok">nvidia/nemotron-3-nano-omni-30b-a3b-reasoning</span>
+
+<span class="l-cmd">$ docker compose exec app python scripts/grafo.py "qual foi a receita de 2017?"</span>
+Resposta final: A receita total em 2017 foi de <span class="l-ok">R$ 5.962.902,01</span>.
+(mesmo valor de antes - tempo total: ~16s, era 6 a 9 minutos)</pre>
+      <div class="cap real">execução real pós-migração, 18/11/2026</div>
+    </div>
+
+    <div class="cols3">
+      <div class="box">
+        <h3>migrado // 8 arquivos</h3>
+        <ul>
+          <li><code>LLM_MODEL</code> padrão trocado em todos os scripts que chamam a LLM, mais <code>.env</code> e <code>.env.example</code></li>
+          <li>imagem Docker reconstruída (<code>sqlglot</code> só estava instalado de forma avulsa na imagem antiga)</li>
+          <li>suíte inteira re-rodada: 32/32 pytest, 7/7 agentes individuais, 5.4 reconfirmado</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>achado real // corrigido</h3>
+        <ul>
+          <li>pergunta bem complexa (comparação multi-métrica) gastou 2223 tokens só "pensando"</li>
+          <li><code>MAX_TOKENS</code> do Gerador de SQL (herdado do modelo antigo, 1500) não bastava e truncava</li>
+          <li>confirmado isolando a chamada (1500/2500/4000) antes de corrigir — subiu para 4000</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>honestidade // o que não fechei</h3>
+        <ul>
+          <li>o modelo de embeddings (RAG) "dorme" no tier gratuito — 1ª chamada após ociosidade estoura 60s</li>
+          <li>antes passava despercebido (LLM já era lenta); agora é o maior ponto de instabilidade</li>
+          <li>não consegui fechar uma 2ª rodada limpa da bateria 5.5 por instabilidade da API nesta janela — recomendado rodar de novo com calma antes da reunião</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <section class="slide" data-badge="proximos passos :: e6">
     <h2 class="slide-head">o que esta entrega ainda não é + próximos passos</h2>
     <p class="slide-sub">escopo fechado deliberadamente — o resto é a E6/E7</p>

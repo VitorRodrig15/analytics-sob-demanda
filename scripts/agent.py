@@ -41,7 +41,7 @@ from openai import OpenAI
 
 from tools import TOOLS, execute_tool
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 MAX_TOKENS = 1200
 TEMPERATURE = 0.2

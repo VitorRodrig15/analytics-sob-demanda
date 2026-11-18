@@ -17,9 +17,13 @@ resultado).
   7. consulta válida mas sem linhas (período fora dos dados)
 
 LATÊNCIA: cada cenário chama a LLM de 3 a 9 vezes (orquestrador + possíveis
-voltas de gerador_sql/validador/execução), ~130-180s por chamada - a bateria
-toda pode levar mais de 1h. Roda em segundo plano, salvando cada resultado
-assim que fica pronto (mesmo padrão de scripts/run_agent_tests.py da E4).
+voltas de gerador_sql/validador/execução). Com o gpt-oss-20b (descontinuado
+em 18/11/2026) isso custava ~130-180s por chamada, e a bateria toda podia
+levar mais de 1h; com o substituto
+(nvidia/nemotron-3-nano-omni-30b-a3b-reasoning) cada chamada leva poucos
+segundos - ver addendum em docs/entregas/E5/README.md. Roda em segundo
+plano, salvando cada resultado assim que fica pronto (mesmo padrão de
+scripts/run_agent_tests.py da E4).
 
 Os cenários 4, 5 e 6 dependem de o LLM *de fato* errar na primeira tentativa
 - não há mock nem forçar resultado (regra do projeto: nunca mockar a LLM).

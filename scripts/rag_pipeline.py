@@ -40,7 +40,7 @@ from search import retrieve
 
 warnings.filterwarnings("ignore")
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 MAX_TOKENS = 1200         # folga generosa: reasoning + resposta (ver nota em test_llm.py).
                           # Comecei com 800, mas na bateria do 3.5 uma resposta sobre

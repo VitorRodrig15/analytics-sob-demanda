@@ -18,21 +18,21 @@ import os
 
 from openai import OpenAI
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-# 1500, não 700: a bateria de testes de integração real (Task 5.5,
-# docs/e5_testes_integracao.jsonl) mostrou que 700 ainda truncava a
-# resposta antes do SELECT saír inteiro em perguntas mais complexas -
-# todas as 8 rejeições do Validador registradas na bateria eram, na
-# verdade, saída vazia/truncada do gerador ("Esperado exatamente 1
-# instrucao SQL, encontrado 0" ou erro de parse por SQL cortado no meio),
-# nenhuma era uma violação real de schema/tipo de statement. Mesmo
+# 4000, não 1500: a bateria de testes de integração real (Task 5.5,
+# docs/e5_testes_integracao.jsonl) mostrou que 700 (e depois 1500) ainda
+# truncava a resposta antes do SELECT saír inteiro em perguntas mais
+# complexas - rejeições do Validador do tipo "Esperado exatamente 1
+# instrucao SQL, encontrado 0" eram, na verdade, saída vazia/truncada do
+# gerador, nenhuma uma violação real de schema/tipo de statement. Mesmo
 # artefato de canal de raciocínio interno visto no agent.py da E4 e no
-# orquestrador.py da E5 - lição carregada de lá -, só que aqui a resposta
-# final é uma consulta SQL inteira (às vezes com múltiplas CTEs), não uma
-# palavra só, então precisa de bem mais folga do que os 150 do
-# orquestrador.
-MAX_TOKENS = 1500
+# orquestrador.py da E5 - lição carregada de lá. Após a migração de modelo
+# de 18/11/2026 (gpt-oss-20b -> nvidia/nemotron-3-nano-omni-30b-a3b-reasoning,
+# ver addendum no README da E5), uma pergunta comparativa complexa gastou
+# 2223 tokens só de raciocínio antes do SQL final (confirmado testando
+# 1500/2500/4000 diretamente contra a API) - 4000 cobre isso com folga.
+MAX_TOKENS = 4000
 TEMPERATURE = 0.2
 
 GERADOR_SQL_SYSTEM_PROMPT = """\

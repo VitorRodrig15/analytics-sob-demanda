@@ -10,8 +10,11 @@ os comportamentos que o prompt de cada agente promete, e grava um relatório
 Markdown com pergunta/entrada, saída real e uma avaliação ✅/❌ por caso -
 mesmo padrão textual do relatório da E4 (docs/e4_testes_agente.md).
 
-Roda 7 chamadas reais de LLM (nenhum mock) - cada uma leva uns 130-180s no
-gpt-oss-20b via NVIDIA NIM, então a bateria toda leva uns 15-25 minutos.
+Roda 7 chamadas reais de LLM (nenhum mock) via NVIDIA NIM. Originalmente
+cada chamada levava uns 130-180s no gpt-oss-20b (então a bateria toda uns
+15-25 minutos); esse modelo foi descontinuado em 18/11/2026 e a bateria
+agora roda contra o nvidia/nemotron-3-nano-omni-30b-a3b-reasoning, em
+segundos por chamada em vez de minutos - ver addendum no README da E5.
 
 Uso (dentro do container):
     docker compose exec app python scripts/testar_agentes_individuais.py
@@ -24,7 +27,7 @@ from openai import OpenAI
 
 from execucao_resposta import executar_sql, responder
 from gerador_sql import gerar_sql
-from orquestrador import NVIDIA_BASE_URL, classificar_intencao
+from orquestrador import LLM_MODEL, NVIDIA_BASE_URL, classificar_intencao
 from semantico_rag import buscar_contexto
 from state import AgentContext
 
@@ -164,7 +167,7 @@ def escrever_relatorio(casos: list[dict], total_segundos: float) -> None:
     linhas = [
         "# 5.1 - Prova de que os 3 agentes com LLM funcionam isolados",
         "",
-        "7 chamadas reais de LLM (NVIDIA NIM, gpt-oss-20b) contra os 3 agentes que ainda "
+        f"7 chamadas reais de LLM (NVIDIA NIM, {LLM_MODEL}) contra os 3 agentes que ainda "
         "não tinham sido comprovados \"testáveis sozinhos\" pelas Tasks anteriores: "
         "Orquestrador (3 casos), Gerador de SQL (2 casos) e Execução e Resposta (2 casos). "
         "O Validador (Task 2) e o Agente Semântico/RAG (Task 4) já ficaram comprovados "

@@ -16,12 +16,16 @@ import os
 
 from openai import OpenAI
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-# 150, não o exemplo de 20 do brief: o gpt-oss-20b gasta tokens no canal de
+# 150, não o exemplo de 20 do brief: a LLM gasta tokens no canal de
 # raciocinio interno antes do conteudo final, e com um valor baixo a resposta
 # trunca ainda nesse canal - message.content vem None e cai sempre no
 # fallback "ambas", mascarando que nenhuma classificacao real aconteceu.
+# (era o gpt-oss-20b, descontinuado em 18/11/2026; hoje e o
+# nvidia/nemotron-3-nano-omni-30b-a3b-reasoning - mesmo comportamento de
+# canal de raciocinio separado, so que muito mais rapido - ver addendum
+# no README da E5)
 MAX_TOKENS = 150
 TEMPERATURE = 0
 
