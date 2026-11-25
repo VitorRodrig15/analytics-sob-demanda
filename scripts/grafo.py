@@ -6,8 +6,10 @@ funções de roteamento puras da Task 3 (scripts/grafo_routing.py) como
 arestas condicionais. Este módulo não contém nenhuma lógica de negócio nova
 - só orquestra quem já existe.
 
-Formato do grafo (docs/entregas/E5/design.md):
+Formato do grafo (docs/entregas/E5/design.md, com a categoria
+fora_de_escopo adicionada na E6 - ver docs/entregas/E5/README.md):
     orquestrador --esclarecimento--> execucao_resposta --> END
+    orquestrador --fora_de_escopo--> execucao_resposta --> END
     orquestrador --com_contexto--> semantico_rag
     semantico_rag --definicao--> execucao_resposta --> END
     semantico_rag --gerar_sql--> gerador_sql
@@ -185,7 +187,11 @@ def montar_grafo():
     grafo.add_conditional_edges(
         "orquestrador",
         rotear_apos_orquestrador,
-        {"esclarecimento": "execucao_resposta", "com_contexto": "semantico_rag"},
+        {
+            "esclarecimento": "execucao_resposta",
+            "fora_de_escopo": "execucao_resposta",
+            "com_contexto": "semantico_rag",
+        },
     )
     grafo.add_conditional_edges(
         "semantico_rag",

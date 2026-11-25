@@ -9,6 +9,10 @@ def test_rotear_apos_orquestrador_esclarecimento():
     ctx = AgentContext(pergunta="x", intencao="esclarecimento")
     assert rotear_apos_orquestrador(ctx) == "esclarecimento"
 
+def test_rotear_apos_orquestrador_fora_de_escopo():
+    ctx = AgentContext(pergunta="receita de bolo de maracuja", intencao="fora_de_escopo")
+    assert rotear_apos_orquestrador(ctx) == "fora_de_escopo"
+
 def test_rotear_apos_orquestrador_segue_fluxo():
     for intencao in ("definicao", "dado", "ambas"):
         ctx = AgentContext(pergunta="x", intencao=intencao)

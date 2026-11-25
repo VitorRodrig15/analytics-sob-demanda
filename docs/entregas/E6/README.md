@@ -80,6 +80,15 @@ definição (pula SQL/Validador), pergunta ambígua (pede esclarecimento, sem
 fontes) e consulta válida sem resultado (filtro logicamente impossível, mesmo
 cenário do 7b da E5) — todos bateram com o comportamento documentado na E5.
 
+**Achado testando uma pergunta propositalmente fora do domínio** ("pode me
+passar a receita de um bolo de maracujá?"): o Orquestrador não tinha
+categoria nenhuma pra "isso não é sobre o negócio" - a pergunta era forçada
+numa das 4 categorias existentes, o que ora gerava uma resposta aceitável por
+acaso, ora uma falha real e intermitente. Corrigido adicionando uma 5ª
+categoria (`fora_de_escopo`) ao classificador - documentado como addendum em
+[docs/entregas/E5/README.md](../E5/README.md#adendo-23112026-categoria-fora_de_escopo-adicionada-na-e6),
+já que mexe numa parte da arquitetura que a E5 tinha fechado.
+
 ## Identidade visual (Vortex Marketplace)
 
 Como o frontend agora é algo que uma pessoa de negócio realmente vê na tela,

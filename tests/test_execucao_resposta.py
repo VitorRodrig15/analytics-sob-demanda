@@ -1,5 +1,16 @@
 # tests/test_execucao_resposta.py
-from execucao_resposta import executar_sql
+from execucao_resposta import _montar_user_content, executar_sql
+from state import AgentContext
+
+
+def test_montar_user_content_fora_de_escopo_nao_tenta_responder():
+    ctx = AgentContext(
+        pergunta="me passa a receita de um bolo de maracuja",
+        intencao="fora_de_escopo",
+    )
+    conteudo = _montar_user_content(ctx)
+    assert "não tem relação" in conteudo
+    assert "não tente responder" in conteudo
 
 
 def test_executar_sql_sucesso():

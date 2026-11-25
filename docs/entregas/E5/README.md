@@ -260,6 +260,29 @@ vez, com calma, antes da apresentação, para ter o 5.5 atualizado também - os 
 estão documentados nos scripts, e o README antigo com os resultados do GPT-OSS-20B
 permanece no histórico do Git para comparação.
 
+## Adendo (23/11/2026): categoria `fora_de_escopo` adicionada na E6
+
+Testando o frontend da E6, uma pergunta totalmente fora do domínio do negócio
+("pode me passar a receita de um bolo de maracujá?") expôs uma lacuna real
+desta entrega: o Orquestrador só conhecia 4 categorias
+(`definicao`/`dado`/`ambas`/`esclarecimento`), então essa pergunta foi
+forçada numa delas (virou `ambas`), e o Gerador de SQL tentou mesmo assim
+gerar uma consulta - o que ora funcionava (devolvendo "não foram encontrados
+resultados", um resultado aceitável por acaso) e ora derrubava o processo com
+uma falha real e intermitente de rede/LLM, exposta como erro cru na API (ver
+addendum da E6).
+
+Adicionei uma 5ª categoria, `fora_de_escopo`, ao `scripts/orquestrador.py`
+(prompt e `CATEGORIAS_VALIDAS`), com uma nova aresta em `scripts/grafo.py`/
+`scripts/grafo_routing.py` que pula Semântico/RAG e Gerador de SQL
+completamente, indo direto para `execucao_resposta` com uma recusa educada -
+mesmo princípio do caminho `esclarecimento` já existente, só que para "isso
+não é sobre o negócio" em vez de "isso é vago demais". Dois testes novos
+(`tests/test_grafo_routing.py`, `tests/test_execucao_resposta.py`), suíte
+completa re-confirmada em **34/34** (32 da E5 + 2 novos), e reconfirmei os
+caminhos `definicao`/`esclarecimento`/`dado` intactos rodando `grafo.py`
+manualmente antes de fechar.
+
 ## Limitação conhecida
 
 A latência deixou de ser o problema principal depois da migração acima — de 130-180s por

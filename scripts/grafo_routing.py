@@ -12,6 +12,8 @@ MAX_TENTATIVAS = 3
 def rotear_apos_orquestrador(ctx: AgentContext) -> str:
     if ctx.intencao == "esclarecimento":
         return "esclarecimento"
+    if ctx.intencao == "fora_de_escopo":
+        return "fora_de_escopo"
     return "com_contexto"
 
 
