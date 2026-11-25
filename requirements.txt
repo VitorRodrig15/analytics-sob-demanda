@@ -13,6 +13,10 @@ fastembed>=0.4
 fastapi>=0.115
 uvicorn[standard]>=0.30
 
+# ---------- Frontend (E6 - 6.3/6.4) ----------
+chainlit>=2.0
+httpx>=0.27                  # chamada HTTP do frontend Chainlit -> API FastAPI
+
 # ---------- Banco / PG Vector ----------
 psycopg[binary]>=3.2
 pgvector>=0.3

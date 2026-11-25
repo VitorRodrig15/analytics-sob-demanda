@@ -70,7 +70,7 @@ gerados, exemplos de execução, prints de resultado).
 | E3 | Pipeline RAG Funcional | 03/11 – 07/11 | ✅ Concluída | [docs/entregas/E3](docs/entregas/E3/README.md) |
 | E4 | Primeiro Agente Funcional | 10/11 – 14/11 | ✅ Concluída | [docs/entregas/E4](docs/entregas/E4/README.md) |
 | E5 | Sistema Multi-Agente Orquestrado | 17/11 – 21/11 | ✅ Concluída | [docs/entregas/E5](docs/entregas/E5/README.md) |
-| E6 | API e Interface do Usuário | 24/11 – 28/11 | ⏳ Em breve | — |
+| E6 | API e Interface do Usuário | 24/11 – 28/11 | 🚧 Em andamento | [docs/entregas/E6](docs/entregas/E6/README.md) |
 | E7 | Testes, Avaliação e Documentação | 01/12 – 05/12 | ⏳ Em breve | — |
 | — | Apresentação Final | 08/12 – 12/12 | ⏳ Em breve | — |
 

@@ -9,3 +9,7 @@ data/processed/
 __pycache__/
 *.pyc
 .venv/
+
+# Chainlit (E6) - traducoes padrao geradas automaticamente no primeiro run,
+# nao e algo que editamos; .chainlit/config.toml continua versionado.
+.chainlit/translations/

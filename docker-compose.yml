@@ -48,7 +48,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://analytics:analytics@db:5432/analytics
     ports:
-      - "8000:8000"   # reservado para a API FastAPI
+      - "8000:8000"   # API FastAPI (E6 - 6.1/6.2)
+      - "8001:8001"   # frontend Chainlit (E6 - 6.3/6.4)
     volumes:
       - .:/app
     depends_on:
