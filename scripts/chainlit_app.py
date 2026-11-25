@@ -56,8 +56,25 @@ async def ao_receber_mensagem(mensagem: cl.Message) -> None:
         )
         await resposta_msg.update()
         return
+    except httpx.HTTPStatusError as exc:
+        # A API devolve {"detail": "..."} (FastAPI/HTTPException) com um
+        # motivo legivel quando o grafo falha (ver scripts/api.py) - extrai
+        # isso em vez de mostrar só o texto generico do erro HTTP.
+        try:
+            detalhe = exc.response.json().get("detail")
+        except Exception:
+            detalhe = None
+        resposta_msg.content = detalhe or (
+            f"A API respondeu com erro ({exc.response.status_code}) "
+            "ao processar a pergunta."
+        )
+        await resposta_msg.update()
+        return
     except httpx.HTTPError as exc:
-        resposta_msg.content = f"Erro ao chamar a API ({API_URL}): {exc}"
+        # Erro de conexao de verdade (API fora do ar, endereco errado) -
+        # nao e um erro vindo do grafo, e sim de nao conseguir falar com a
+        # API.
+        resposta_msg.content = f"Não foi possível conectar à API ({API_URL}): {exc}"
         await resposta_msg.update()
         return
 

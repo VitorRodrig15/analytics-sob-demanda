@@ -67,7 +67,13 @@ HTTP com a API.
 - **Tratamento de erro:** timeout da API e erro de conexão têm mensagens
   próprias no frontend, diferentes de uma resposta válida de "não consegui
   responder" vinda do próprio grafo (esse segundo caso é um HTTP 200 normal, não
-  um erro).
+  um erro). Achado testando manualmente: uma falha real dentro do grafo (ex.:
+  instabilidade pontual da API da NVIDIA) subia crua como HTTP 500 sem
+  explicação nenhuma pro usuário. Corrigido capturando a exceção em
+  `scripts/api.py` (vira um 503 com motivo, e o traceback real fica logado
+  server-side) e extraindo essa mensagem no `chainlit_app.py` em vez de
+  mostrar o texto genérico do erro HTTP. Testei forçando o erro de propósito
+  (chave de API inválida só nesse processo) antes e depois da correção.
 
 Testei manualmente os 3 caminhos principais do grafo pelo chat: pergunta de
 definição (pula SQL/Validador), pergunta ambígua (pede esclarecimento, sem

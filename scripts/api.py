@@ -12,11 +12,15 @@ Uso (dentro do container):
 
 Depois, com o container rodando, acessar http://localhost:8000/docs
 """
+import logging
+
 from pydantic import BaseModel
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from grafo import run_grafo
+
+logger = logging.getLogger("api")
 
 app = FastAPI(
     title="Vortex Analytics Copilot - API",
@@ -55,7 +59,26 @@ def perguntar(request: PerguntaRequest) -> PerguntaResponse:
     # run_grafo e sincrono e bloqueante: a requisicao HTTP fica esperando o
     # grafo inteiro terminar (pode levar alguns segundos, mais se o loop de
     # correcao disparar) antes de devolver a resposta.
-    ctx = run_grafo(request.pergunta)
+    #
+    # Captura ampla de proposito: o grafo chama a LLM (openai.APIError e
+    # subclasses) e o modelo de embeddings via requests (langchain-nvidia-
+    # ai-endpoints), e ambos ja tiveram falha transitoria real documentada
+    # no addendum da E5 (instabilidade/cold-start da API da NVIDIA). Sem
+    # isso, qualquer uma dessas falhas sobe crua como 500 sem explicacao -
+    # aqui vira um 503 com motivo, e o traceback real fica logado pra quem
+    # for depurar depois.
+    try:
+        ctx = run_grafo(request.pergunta)
+    except Exception:
+        logger.exception("Falha ao rodar o grafo para a pergunta: %r", request.pergunta)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Nao foi possivel completar a consulta no momento - "
+                "provavel instabilidade pontual da API da NVIDIA (LLM ou "
+                "embeddings). Tente novamente em alguns instantes."
+            ),
+        )
 
     return PerguntaResponse(
         resposta=ctx.resposta_final,
