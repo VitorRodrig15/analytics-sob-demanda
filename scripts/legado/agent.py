@@ -30,7 +30,7 @@ Uso como módulo:
     resultado = run_agent("qual foi a receita de 2017?")
 
 Uso como CLI (dentro do container):
-    docker compose exec app python scripts/agent.py "qual foi a receita de 2017?"
+    docker compose exec app python scripts/legado/agent.py "qual foi a receita de 2017?"
 """
 import argparse
 import json

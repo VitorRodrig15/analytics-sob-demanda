@@ -8,11 +8,11 @@ responsabilidades deste módulo, cada uma numa função:
 
   executar_sql - roda o SELECT de verdade contra o schema dw. Reaproveita a
                  mesma lógica de conexão de tool_consulta_banco
-                 (scripts/tools.py): role agente_leitura, conn.read_only =
+                 (scripts/tools/tools.py): role agente_leitura, conn.read_only =
                  True, LIMIT 50. Não repete as 5 checagens de texto de
                  tool_consulta_banco (não precisar chegar nem perto de
                  DROP/INSERT/etc.) porque isso já é trabalho do Validador
-                 (scripts/validador.py, Task 2) - um parser real (sqlglot),
+                 (scripts/agents/validador.py, Task 2) - um parser real (sqlglot),
                  que já rodou antes do SQL chegar aqui. Função sem LLM.
 
   responder    - LLM que escreve a resposta final, ramificando por
@@ -35,7 +35,7 @@ from openai import OpenAI
 from state import AgentContext
 from tools import agent_database_url
 
-MAX_ROWS = 50  # mesmo limite de tool_consulta_banco (scripts/tools.py)
+MAX_ROWS = 50  # mesmo limite de tool_consulta_banco (scripts/tools/tools.py)
 
 LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
@@ -73,10 +73,10 @@ material recebido.\
 def executar_sql(sql: str) -> tuple[dict | None, str | None]:
     """Roda o SELECT já validado contra o schema dw, pela role de leitura.
 
-    Mesma lógica de conexão de tool_consulta_banco (scripts/tools.py):
+    Mesma lógica de conexão de tool_consulta_banco (scripts/tools/tools.py):
     conecta como agente_leitura, conn.read_only = True e envolve a consulta
     num LIMIT 50 - sem as 5 checagens de texto daquela função, porque o SQL
-    que chega aqui já passou pelo Validador (scripts/validador.py).
+    que chega aqui já passou pelo Validador (scripts/agents/validador.py).
     """
     sql = sql.strip().rstrip(";")
 

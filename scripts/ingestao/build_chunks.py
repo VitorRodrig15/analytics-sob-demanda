@@ -21,7 +21,7 @@ Cada chunk guarda dois textos separados, e essa separação é proposital:
 Saída: data/processed/chunks.jsonl e o relatório docs/b2_chunks.md. Este
 script ainda não gera embeddings - isso é o próximo passo, o bloco C.
 
-Uso (dentro do container):  docker compose exec app python scripts/build_chunks.py
+Uso (dentro do container):  docker compose exec app python scripts/ingestao/build_chunks.py
 """
 import json
 import re

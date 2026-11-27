@@ -5,12 +5,12 @@
 Esta entrega cobre os itens 6.1 a 6.5: expor o grafo multiagente da E5 por trás de
 uma API REST, e construir um frontend de verdade pra alguém sem acesso ao terminal
 conseguir usar o sistema. Até aqui (E1 a E5), o único jeito de rodar o sistema era
-`docker compose exec app python scripts/grafo.py "pergunta"` — ninguém de negócio
+`docker compose exec app python scripts/agents/grafo.py "pergunta"` — ninguém de negócio
 ia conseguir usar isso.
 
 ## 6.1 API REST com FastAPI
 
-[`scripts/api.py`](../../../scripts/api.py) expõe dois endpoints: `GET /health`
+[`scripts/interface/api.py`](../../../scripts/interface/api.py) expõe dois endpoints: `GET /health`
 (checagem simples) e `POST /perguntar` (recebe `{"pergunta": "..."}` e devolve a
 resposta). Os modelos de entrada/saída são `Pydantic` (`PerguntaRequest`,
 `PerguntaResponse`, `Fonte`), e é a partir deles que o FastAPI gera sozinho a
@@ -20,7 +20,7 @@ só tipei os modelos direito.
 ## 6.2 Integração API ↔ Multi-Agentes
 
 O endpoint `/perguntar` chama `run_grafo()` direto de
-[`scripts/grafo.py`](../../../scripts/grafo.py) — a mesma função que a E5 já usava
+[`scripts/agents/grafo.py`](../../../scripts/agents/grafo.py) — a mesma função que a E5 já usava
 na CLI, sem duplicar nenhuma lógica. Testei com a mesma pergunta do 5.4 ("qual foi a
 receita de 2017?") e bateu o mesmo valor já confirmado (**R$ 5.962.902,01**),
 incluindo as fontes citadas e o `historico` passo a passo dos agentes.
@@ -36,7 +36,7 @@ supervisor) em vez de montar HTML/JS do zero: ele já entrega chat pronto,
 streaming, histórico e indicador de atividade, deixando o tempo da semana focado
 no 6.1/6.2, que é a parte que prova a integração de verdade.
 
-[`scripts/chainlit_app.py`](../../../scripts/chainlit_app.py) **não importa o
+[`scripts/interface/chainlit_app.py`](../../../scripts/interface/chainlit_app.py) **não importa o
 grafo nem chama LLM nenhuma diretamente** — ele consome a API via HTTP
 (`httpx`), exatamente como pede o item 6.4. Isso mantém frontend e backend
 desacoplados: a API pode ser chamada por qualquer outro cliente (curl, outro
@@ -70,7 +70,7 @@ HTTP com a API.
   um erro). Achado testando manualmente: uma falha real dentro do grafo (ex.:
   instabilidade pontual da API da NVIDIA) subia crua como HTTP 500 sem
   explicação nenhuma pro usuário. Corrigido capturando a exceção em
-  `scripts/api.py` (vira um 503 com motivo, e o traceback real fica logado
+  `scripts/interface/api.py` (vira um 503 com motivo, e o traceback real fica logado
   server-side) e extraindo essa mensagem no `chainlit_app.py` em vez de
   mostrar o texto genérico do erro HTTP. Testei forçando o erro de propósito
   (chave de API inválida só nesse processo) antes e depois da correção.
@@ -102,17 +102,17 @@ troquei a marca padrão do Chainlit pela da empresa fictícia do projeto:
   sistema funciona por trás.
 - `.chainlit/config.toml`: nome do assistente trocado para "Vortex Analytics
   Copilot".
-- [`scripts/api.py`](../../../scripts/api.py): título/descrição do Swagger
+- [`scripts/interface/api.py`](../../../scripts/interface/api.py): título/descrição do Swagger
   também referenciam a Vortex Marketplace.
 
 ## Como rodar
 
 ```bash
 # API (porta 8000)
-docker compose exec app uvicorn api:app --host 0.0.0.0 --port 8000 --app-dir scripts
+docker compose exec app uvicorn api:app --host 0.0.0.0 --port 8000 --app-dir scripts/interface
 
 # Frontend Chainlit (porta 8001) - sem DATABASE_URL, ver nota do 6.3/6.4 acima
-docker compose exec -e DATABASE_URL= app chainlit run scripts/chainlit_app.py --host 0.0.0.0 --port 8001
+docker compose exec -e DATABASE_URL= app chainlit run scripts/interface/chainlit_app.py --host 0.0.0.0 --port 8001
 ```
 
 Depois, `http://localhost:8000/docs` (Swagger) e `http://localhost:8001`

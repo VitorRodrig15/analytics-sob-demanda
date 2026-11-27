@@ -30,14 +30,14 @@ de começar a codar, está em [`docs/entregas/E5/design.md`](design.md).
 
 | Agente | Script | Responsabilidade |
 |---|---|---|
-| Orquestrador | [`scripts/orquestrador.py`](../../../scripts/orquestrador.py) | Classifica a pergunta em `definicao` / `dado` / `ambas` / `esclarecimento` (uma chamada de LLM dedicada, não heurística por palavra-chave) |
-| Semântico/RAG | [`scripts/semantico_rag.py`](../../../scripts/semantico_rag.py) | Busca no dicionário semântico (schema `rag`) o contexto relevante para a pergunta, reaproveitando o `retrieve()` que já tinha da E3 |
-| Gerador de SQL | [`scripts/gerador_sql.py`](../../../scripts/gerador_sql.py) | Escreve o SQL a partir do contexto do RAG, e reage quando existe um erro da tentativa anterior (de validação ou de execução) |
-| Validador | [`scripts/validador.py`](../../../scripts/validador.py) | Análise estática determinística via `sqlglot` — a árvore real do SQL, não regex. Só aceita `SELECT`/`WITH`/`UNION`/`EXCEPT`/`INTERSECT`, exige pelo menos uma tabela `dw.*` referenciada, e rejeita qualquer `INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP` em qualquer nível da árvore — mesmo escondido dentro de uma CTE — e qualquer `SELECT ... INTO` |
-| Execução e Resposta | [`scripts/execucao_resposta.py`](../../../scripts/execucao_resposta.py) | Roda o SQL aprovado (role `agente_leitura`, a mesma da E4) e escreve a resposta final em português, citando a fonte |
+| Orquestrador | [`scripts/agents/orquestrador.py`](../../../scripts/agents/orquestrador.py) | Classifica a pergunta em `definicao` / `dado` / `ambas` / `esclarecimento` (uma chamada de LLM dedicada, não heurística por palavra-chave) |
+| Semântico/RAG | [`scripts/agents/semantico_rag.py`](../../../scripts/agents/semantico_rag.py) | Busca no dicionário semântico (schema `rag`) o contexto relevante para a pergunta, reaproveitando o `retrieve()` que já tinha da E3 |
+| Gerador de SQL | [`scripts/agents/gerador_sql.py`](../../../scripts/agents/gerador_sql.py) | Escreve o SQL a partir do contexto do RAG, e reage quando existe um erro da tentativa anterior (de validação ou de execução) |
+| Validador | [`scripts/agents/validador.py`](../../../scripts/agents/validador.py) | Análise estática determinística via `sqlglot` — a árvore real do SQL, não regex. Só aceita `SELECT`/`WITH`/`UNION`/`EXCEPT`/`INTERSECT`, exige pelo menos uma tabela `dw.*` referenciada, e rejeita qualquer `INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP` em qualquer nível da árvore — mesmo escondido dentro de uma CTE — e qualquer `SELECT ... INTO` |
+| Execução e Resposta | [`scripts/agents/execucao_resposta.py`](../../../scripts/agents/execucao_resposta.py) | Roda o SQL aprovado (role `agente_leitura`, a mesma da E4) e escreve a resposta final em português, citando a fonte |
 
 Pra provar que cada agente funciona isolado, sem depender do grafo, escrevi o
-[`scripts/testar_agentes_individuais.py`](../../../scripts/testar_agentes_individuais.py)
+[`scripts/testes_manuais/testar_agentes_individuais.py`](../../../scripts/testes_manuais/testar_agentes_individuais.py)
 — 7 chamadas reais de LLM contra os 3 agentes que só dá pra testar com LLM de verdade
 (Orquestrador, Gerador de SQL, Execução e Resposta; o Validador e o Semântico/RAG já
 tinham prova própria das Tasks 2 e 4). O relatório completo está em
@@ -72,10 +72,10 @@ tabela `dw.*` de verdade.
 
 ## 5.2 Orquestração implementada
 
-O [`scripts/grafo.py`](../../../scripts/grafo.py) monta um `StateGraph` do LangGraph
+O [`scripts/agents/grafo.py`](../../../scripts/agents/grafo.py) monta um `StateGraph` do LangGraph
 ligando os 5 agentes, com arestas condicionais decidindo o próximo nó a partir do
 estado — as 4 funções `rotear_apos_*` que concentrei em
-`scripts/grafo_routing.py`. Toda rota termina em `execucao_resposta`, seja com dado
+`scripts/agents/grafo_routing.py`. Toda rota termina em `execucao_resposta`, seja com dado
 real, só com a definição do RAG, um pedido de esclarecimento, ou uma explicação de
 falha.
 
@@ -95,7 +95,7 @@ pra evitar um loop sem fim.
 
 ## 5.3 Gestão de estado
 
-O [`scripts/state.py`](../../../scripts/state.py) define o `AgentContext`, a dataclass
+O [`scripts/agents/state.py`](../../../scripts/agents/state.py) define o `AgentContext`, a dataclass
 que carrega a pergunta, a intenção já classificada, o contexto do RAG, o SQL gerado, o
 resultado da validação (`validacao_ok`/`motivo_rejeicao`), o resultado da execução
 (`resultado_execucao`/`erro_execucao`), a resposta final, o contador de tentativas e o
@@ -114,7 +114,7 @@ duplicação indevida.
 
 ## 5.4 Fluxo end-to-end do sistema
 
-Rodei de verdade: `docker compose exec app python scripts/grafo.py "qual foi a receita
+Rodei de verdade: `docker compose exec app python scripts/agents/grafo.py "qual foi a receita
 de 2017?"`.
 
 Pelo `historico`, o caminho foi: orquestrador classificou como `dado` → semântico_rag
@@ -128,7 +128,7 @@ integração do 5.5.
 
 ## 5.5 Testes de integração
 
-Escrevi o [`scripts/run_e5_tests.py`](../../../scripts/run_e5_tests.py) pra rodar 7
+Escrevi o [`scripts/testes_manuais/run_e5_tests.py`](../../../scripts/testes_manuais/run_e5_tests.py) pra rodar 7
 cenários reais contra o grafo completo, sem mockar nenhuma chamada de LLM. O relatório
 está em [`docs/e5_testes_integracao.md`](../../e5_testes_integracao.md), e os
 resultados brutos — um `AgentContext` completo por linha, incluindo o `historico` — em
@@ -255,7 +255,7 @@ testando e comparando modelos. Não consegui fechar uma segunda rodada completa 
 do 5.5 antes de fechar este adendo. O que tenho de verificação sólida: a suíte
 determinística (32/32), a bateria 5.1 (7/7, re-executada do zero com o modelo novo) e o
 fluxo 5.4 (confirmado duas vezes) — mais a correção pontual do achado acima, testada
-isoladamente e de forma repetível. Recomendo rodar o `scripts/run_e5_tests.py` mais uma
+isoladamente e de forma repetível. Recomendo rodar o `scripts/testes_manuais/run_e5_tests.py` mais uma
 vez, com calma, antes da apresentação, para ter o 5.5 atualizado também - os comandos
 estão documentados nos scripts, e o README antigo com os resultados do GPT-OSS-20B
 permanece no histórico do Git para comparação.
@@ -272,9 +272,9 @@ resultados", um resultado aceitável por acaso) e ora derrubava o processo com
 uma falha real e intermitente de rede/LLM, exposta como erro cru na API (ver
 addendum da E6).
 
-Adicionei uma 5ª categoria, `fora_de_escopo`, ao `scripts/orquestrador.py`
-(prompt e `CATEGORIAS_VALIDAS`), com uma nova aresta em `scripts/grafo.py`/
-`scripts/grafo_routing.py` que pula Semântico/RAG e Gerador de SQL
+Adicionei uma 5ª categoria, `fora_de_escopo`, ao `scripts/agents/orquestrador.py`
+(prompt e `CATEGORIAS_VALIDAS`), com uma nova aresta em `scripts/agents/grafo.py`/
+`scripts/agents/grafo_routing.py` que pula Semântico/RAG e Gerador de SQL
 completamente, indo direto para `execucao_resposta` com uma recusa educada -
 mesmo princípio do caminho `esclarecimento` já existente, só que para "isso
 não é sobre o negócio" em vez de "isso é vago demais". Dois testes novos

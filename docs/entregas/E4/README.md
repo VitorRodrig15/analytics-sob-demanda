@@ -18,7 +18,7 @@ calling real (o parâmetro `tools` da API, formato OpenAI).
 
 ## 4.1 Primeiro agente implementado
 
-**Script:** [`scripts/agent.py`](../../../scripts/agent.py) — função `run_agent(pergunta)`.
+**Script:** [`scripts/legado/agent.py`](../../../scripts/legado/agent.py) — função `run_agent(pergunta)`.
 
 **Papel do agente:** assistente de analytics da Vortex Marketplace, que responde
 perguntas de negócio em linguagem natural usando o dicionário semântico e os dados
@@ -51,7 +51,7 @@ seguindo a regra 1 do prompt ("nunca escreva uma fórmula de memória").
 
 ## 4.3 Definição de tools/functions
 
-**Script:** [`scripts/tools.py`](../../../scripts/tools.py).
+**Script:** [`scripts/tools/tools.py`](../../../scripts/tools/tools.py).
 
 | Ferramenta | O que faz | Protege contra |
 |---|---|---|
@@ -98,7 +98,7 @@ bateria formal), que valem registrar:
 ## 4.5 Documentação do agente
 
 Esta página. Resumo dos critérios de decisão que o agente segue (as 8 regras do
-`AGENT_SYSTEM_PROMPT`, em `scripts/agent.py`):
+`AGENT_SYSTEM_PROMPT`, em `scripts/legado/agent.py`):
 
 1. Sempre buscar a fórmula/regra no dicionário antes de escrever SQL.
 2. Só consultar o banco quando a pergunta pedir um número, comparação ou lista real.

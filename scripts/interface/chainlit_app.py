@@ -1,7 +1,7 @@
 """Entregavel 6 (E6) - Frontend (itens 6.3, 6.4 e 6.5), feito com Chainlit.
 
 Importante: este frontend NAO chama o grafo diretamente (nao importa
-grafo.py nem roda LLM aqui). Ele consome a API FastAPI (scripts/api.py) via
+grafo.py nem roda LLM aqui). Ele consome a API FastAPI (scripts/interface/api.py) via
 HTTP, como pede o item 6.4 - a mesma API que qualquer outro cliente
 (curl, Postman, outro sistema) poderia chamar. Isso mantem frontend e
 backend desacoplados: o frontend pode trocar (ou ser hospedado em outro
@@ -22,8 +22,8 @@ import chainlit as cl
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 # Tempo generoso: o /perguntar da API e sincrono e pode esperar o grafo
-# rodar ate MAX_TENTATIVAS=3 voltas do loop de correcao (ver scripts/api.py
-# e scripts/grafo.py) - visto na pratica levar ate ~1 min nos piores casos.
+# rodar ate MAX_TENTATIVAS=3 voltas do loop de correcao (ver scripts/interface/api.py
+# e scripts/agents/grafo.py) - visto na pratica levar ate ~1 min nos piores casos.
 TIMEOUT_SEGUNDOS = 120.0
 
 
@@ -58,7 +58,7 @@ async def ao_receber_mensagem(mensagem: cl.Message) -> None:
         return
     except httpx.HTTPStatusError as exc:
         # A API devolve {"detail": "..."} (FastAPI/HTTPException) com um
-        # motivo legivel quando o grafo falha (ver scripts/api.py) - extrai
+        # motivo legivel quando o grafo falha (ver scripts/interface/api.py) - extrai
         # isso em vez de mostrar só o texto generico do erro HTTP.
         try:
             detalhe = exc.response.json().get("detail")

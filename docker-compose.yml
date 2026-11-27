@@ -47,6 +47,12 @@ services:
         required: false
     environment:
       DATABASE_URL: postgresql+psycopg://analytics:analytics@db:5432/analytics
+      # scripts/ virou um pacote com subpastas (agents, tools, interface,
+      # ingestao, legado, testes_manuais) - todo o codigo usa import "solto"
+      # (ex.: "from tools import ..."), entao cada subpasta precisa estar no
+      # PYTHONPATH pra esses imports continuarem funcionando sem reescrever
+      # nenhuma linha de import dentro dos scripts.
+      PYTHONPATH: /app/scripts/agents:/app/scripts/tools:/app/scripts/interface:/app/scripts/ingestao:/app/scripts/legado:/app/scripts/testes_manuais
     ports:
       - "8000:8000"   # API FastAPI (E6 - 6.1/6.2)
       - "8001:8001"   # frontend Chainlit (E6 - 6.3/6.4)

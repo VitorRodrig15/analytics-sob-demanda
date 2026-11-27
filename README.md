@@ -81,7 +81,14 @@ gerados, exemplos de execução, prints de resultado).
 ├── requirements.txt                 → dependências Python
 ├── sql/                             → scripts SQL dos schemas dw (dados) e rag (conhecimento)
 ├── knowledge/                       → dicionário semântico (métricas, regras, tabelas, exemplos de SQL)
-├── scripts/                         → pipeline completo: ingestão, chunking, embeddings, RAG, testes
+├── scripts/                         → pipeline completo (ver subpastas abaixo)
+│   ├── agents/                      → os 5 nós do grafo multiagente (E5): orquestrador, semântico/RAG,
+│   │                                  gerador de SQL, validador, execução e resposta + grafo.py/grafo_routing.py
+│   ├── tools/                       → ferramentas usadas pelos agentes (busca vetorial, consulta ao banco)
+│   ├── interface/                   → API REST (FastAPI) e frontend (Chainlit) da E6
+│   ├── ingestao/                    → carga do banco e pipeline de embeddings do RAG (E2/E3)
+│   ├── legado/                      → agente da E4 (tool-calling livre), superado pelo grafo da E5
+│   └── testes_manuais/              → scripts de avaliação que rodam a LLM de verdade (não são pytest)
 ├── docs/                            → relatórios gerados pelos scripts + pasta entregas/ com o histórico semanal
 └── data/                            → dados brutos e processados (fora do Git, ver .gitignore)
 ```
@@ -112,15 +119,15 @@ Copie os CSVs extraídos para `data/raw/olist/`.
 de cada entrega):
 
 ```bash
-docker compose exec app python scripts/profile_data.py        # E2 — perfil de qualidade
-docker compose exec app python scripts/load_dw.py              # E2 — limpeza e carga
-docker compose exec app python scripts/validate_knowledge.py   # E2 — valida os SQLs do dicionário
-docker compose exec app python scripts/build_chunks.py         # E2 — divide o dicionário em chunks
-docker compose exec app python scripts/embed_chunks.py         # E2 — gera os embeddings
-docker compose exec app python scripts/validate_ingestion.py   # E2 — valida a ingestão
-docker compose exec app python scripts/rag_pipeline.py "qual o ticket médio?"  # E3 — pergunta ao pipeline RAG
-docker compose exec app python scripts/agent.py "qual foi a receita de 2017?" # E4 — pergunta ao agente com tools
-docker compose exec app python scripts/grafo.py "qual foi a receita de 2017?"  # E5 — pergunta ao sistema multi-agente
+docker compose exec app python scripts/ingestao/profile_data.py        # E2 — perfil de qualidade
+docker compose exec app python scripts/ingestao/load_dw.py              # E2 — limpeza e carga
+docker compose exec app python scripts/ingestao/validate_knowledge.py   # E2 — valida os SQLs do dicionário
+docker compose exec app python scripts/ingestao/build_chunks.py         # E2 — divide o dicionário em chunks
+docker compose exec app python scripts/ingestao/embed_chunks.py         # E2 — gera os embeddings
+docker compose exec app python scripts/ingestao/validate_ingestion.py   # E2 — valida a ingestão
+docker compose exec app python scripts/ingestao/rag_pipeline.py "qual o ticket médio?"  # E3 — pergunta ao pipeline RAG
+docker compose exec app python scripts/legado/agent.py "qual foi a receita de 2017?" # E4 — pergunta ao agente com tools
+docker compose exec app python scripts/agents/grafo.py "qual foi a receita de 2017?"  # E5 — pergunta ao sistema multi-agente
 ```
 
 > A chamada à LLM (`rag_pipeline.py`) leva entre 130 e 180 segundos por

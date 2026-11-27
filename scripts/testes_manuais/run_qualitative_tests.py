@@ -23,7 +23,7 @@ resultado assim que fica pronto, sem esperar o final pra gravar - se algo
 travar no meio, não perco o que já foi respondido.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/run_qualitative_tests.py
+    docker compose exec app python scripts/testes_manuais/run_qualitative_tests.py
 """
 import json
 import time

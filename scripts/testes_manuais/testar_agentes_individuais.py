@@ -1,7 +1,7 @@
 """Entregável 5 (E5) - Prova de que os 3 agentes com LLM funcionam isolados (5.1).
 
-O Validador (scripts/validador.py, Task 2) e o Agente Semântico/RAG
-(scripts/semantico_rag.py, Task 4) já ficaram comprovados "testáveis sozinhos"
+O Validador (scripts/agents/validador.py, Task 2) e o Agente Semântico/RAG
+(scripts/agents/semantico_rag.py, Task 4) já ficaram comprovados "testáveis sozinhos"
 pelas baterias das Tasks 2 e 4. Faltam os outros 3 agentes que chamam a LLM:
 Orquestrador (Task 5, classifica a intenção), Gerador de SQL (Task 6, escreve
 o SELECT) e Execução/Resposta (Task 7, roda o SQL e escreve a resposta final).
@@ -17,7 +17,7 @@ agora roda contra o nvidia/nemotron-3-nano-omni-30b-a3b-reasoning, em
 segundos por chamada em vez de minutos - ver addendum no README da E5.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/testar_agentes_individuais.py
+    docker compose exec app python scripts/testes_manuais/testar_agentes_individuais.py
 """
 import os
 import time

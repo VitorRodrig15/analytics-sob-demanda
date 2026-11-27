@@ -22,8 +22,8 @@ Uso como módulo (de outro script, por exemplo o 3.5):
     resultado = ask("qual o ticket medio?")
 
 Uso como CLI (dentro do container):
-    docker compose exec app python scripts/rag_pipeline.py "qual o ticket medio?"
-    docker compose exec app python scripts/rag_pipeline.py "pergunta" --k 5 --salvar docs/respostas.jsonl
+    docker compose exec app python scripts/ingestao/rag_pipeline.py "qual o ticket medio?"
+    docker compose exec app python scripts/ingestao/rag_pipeline.py "pergunta" --k 5 --salvar docs/respostas.jsonl
 """
 import argparse
 import json

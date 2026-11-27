@@ -2,7 +2,7 @@
 
 Último passo da arquitetura multiagente: liga os 5 agentes já construídos e
 testados isoladamente (Tasks 4-7) num `StateGraph` do LangGraph, usando as
-funções de roteamento puras da Task 3 (scripts/grafo_routing.py) como
+funções de roteamento puras da Task 3 (scripts/agents/grafo_routing.py) como
 arestas condicionais. Este módulo não contém nenhuma lógica de negócio nova
 - só orquestra quem já existe.
 
@@ -25,7 +25,7 @@ Uso como módulo:
     ctx = run_grafo("qual foi a receita de 2017?")
 
 Uso como CLI (dentro do container):
-    docker compose exec app python scripts/grafo.py "qual foi a receita de 2017?"
+    docker compose exec app python scripts/agents/grafo.py "qual foi a receita de 2017?"
 """
 import argparse
 import os

@@ -19,7 +19,7 @@ Tudo somente leitura - nada e alterado no banco so por estar validando.
 Gera o relatorio docs/d1_validacao_ingestao.md, que uso como evidencia na
 apresentacao semanal.
 
-Uso (dentro do container):  docker compose exec app python scripts/validate_ingestion.py
+Uso (dentro do container):  docker compose exec app python scripts/ingestao/validate_ingestion.py
 """
 import json
 import os

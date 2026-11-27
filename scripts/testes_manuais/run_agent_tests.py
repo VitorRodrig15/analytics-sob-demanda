@@ -20,7 +20,7 @@ bateria toda pode levar bem mais que a da E3. Roda em segundo plano,
 salvando cada resultado assim que fica pronto.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/run_agent_tests.py
+    docker compose exec app python scripts/testes_manuais/run_agent_tests.py
 """
 import json
 import time

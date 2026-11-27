@@ -15,7 +15,7 @@ LATENCIA: cada chamada leva ~130-180s (ver test_llm.py). Com tool calling
 pode levar 2 chamadas (decisao + resposta final apos o resultado da tool),
 entao este teste pode levar uns 5 minutos.
 
-Uso (dentro do container):  docker compose exec app python scripts/test_tool_calling.py
+Uso (dentro do container):  docker compose exec app python scripts/legado/test_tool_calling.py
 """
 import json
 import os

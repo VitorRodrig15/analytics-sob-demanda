@@ -14,7 +14,7 @@ geolocalização com centenas de milhares de linhas repetidas, os 814
 agosto de 2018. Cada regra de limpeza que apliquei depois no load_dw.py
 (entregável 2.2, passo A3) nasceu de um número que apareceu aqui.
 
-Uso (dentro do container):  docker compose exec app python scripts/profile_data.py
+Uso (dentro do container):  docker compose exec app python scripts/ingestao/profile_data.py
 """
 from pathlib import Path
 

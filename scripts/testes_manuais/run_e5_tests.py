@@ -2,7 +2,7 @@
 
 Diferente das baterias anteriores (E3 3.5, E4 4.4, que testavam um agente
 isolado), aqui o que se testa é a orquestração: os 5 agentes ligados pelo
-`StateGraph` de `scripts/grafo.py`, incluindo os dois loops de correção
+`StateGraph` de `scripts/agents/grafo.py`, incluindo os dois loops de correção
 (Validador -> Gerador de SQL, e Execução -> Gerador de SQL) e os dois casos
 de borda que encerram sem travar (tentativas esgotadas, consulta sem
 resultado).
@@ -23,7 +23,7 @@ levar mais de 1h; com o substituto
 (nvidia/nemotron-3-nano-omni-30b-a3b-reasoning) cada chamada leva poucos
 segundos - ver addendum em docs/entregas/E5/README.md. Roda em segundo
 plano, salvando cada resultado assim que fica pronto (mesmo padrão de
-scripts/run_agent_tests.py da E4).
+scripts/testes_manuais/run_agent_tests.py da E4).
 
 Os cenários 4, 5 e 6 dependem de o LLM *de fato* errar na primeira tentativa
 - não há mock nem forçar resultado (regra do projeto: nunca mockar a LLM).
@@ -33,7 +33,7 @@ resultado real pode variar entre execuções; isso é avaliado manualmente
 depois, lendo o historico de cada cenário.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/run_e5_tests.py
+    docker compose exec app python scripts/testes_manuais/run_e5_tests.py
 """
 import json
 import time

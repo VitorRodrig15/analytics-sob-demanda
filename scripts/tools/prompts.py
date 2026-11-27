@@ -27,7 +27,7 @@ Uso como modulo (de outro script em scripts/):
 Uso como CLI, para ver o prompt montado sem chamar a LLM (ela demora
 ~150s por chamada - ver a nota de latencia em test_llm.py). Esse e o
 comando mais seguro pra demonstrar ao vivo, porque e instantaneo:
-    docker compose exec app python scripts/prompts.py "qual o ticket medio?"
+    docker compose exec app python scripts/tools/prompts.py "qual o ticket medio?"
 """
 import argparse
 import sys

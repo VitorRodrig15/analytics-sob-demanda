@@ -32,7 +32,7 @@ controle. Isso muda como vou demonstrar o projeto daqui pra frente:
   - sempre usar max_tokens generoso (500+): com valores baixos o modelo pode
     gastar tudo "pensando" (reasoning) e devolver a resposta vazia
 
-Uso (dentro do container):  docker compose exec app python scripts/test_llm.py
+Uso (dentro do container):  docker compose exec app python scripts/legado/test_llm.py
 """
 import os
 import time

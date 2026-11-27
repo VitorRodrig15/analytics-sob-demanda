@@ -13,7 +13,7 @@ que preciso corrigir o dicionário antes de seguir para o chunking (B2).
 
 Gera o relatorio docs/b1_validacao_sql.md.
 
-Uso (dentro do container):  docker compose exec app python scripts/validate_knowledge.py
+Uso (dentro do container):  docker compose exec app python scripts/ingestao/validate_knowledge.py
 """
 import json
 import os

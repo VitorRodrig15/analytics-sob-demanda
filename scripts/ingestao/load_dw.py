@@ -13,8 +13,8 @@ novo, sem risco de duplicar nada ou deixar o banco pela metade se algo
 falhar no meio do caminho.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/load_dw.py             -> limpa e carrega
-    docker compose exec app python scripts/load_dw.py --dry-run   -> so limpa e mostra o resumo
+    docker compose exec app python scripts/ingestao/load_dw.py             -> limpa e carrega
+    docker compose exec app python scripts/ingestao/load_dw.py --dry-run   -> so limpa e mostra o resumo
 """
 import argparse
 import io

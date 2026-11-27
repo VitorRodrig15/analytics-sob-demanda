@@ -19,8 +19,8 @@ A carga é idempotente, igual à do load_dw.py: esvazia rag.documents e grava
 de novo, numa única transação.
 
 Uso (dentro do container):
-    docker compose exec app python scripts/embed_chunks.py             -> gera e grava
-    docker compose exec app python scripts/embed_chunks.py --dry-run   -> so gera, sem gravar
+    docker compose exec app python scripts/ingestao/embed_chunks.py             -> gera e grava
+    docker compose exec app python scripts/ingestao/embed_chunks.py --dry-run   -> so gera, sem gravar
 """
 import argparse
 import json

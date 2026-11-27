@@ -22,8 +22,8 @@ Uso como módulo (de outro script em scripts/):
     chunks = retrieve("qual o ticket medio?", k=3)
 
 Uso como CLI (dentro do container):
-    docker compose exec app python scripts/search.py "qual o ticket medio por regiao?"
-    docker compose exec app python scripts/search.py "pergunta" --k 5 --tipo sql_example
+    docker compose exec app python scripts/tools/search.py "qual o ticket medio por regiao?"
+    docker compose exec app python scripts/tools/search.py "pergunta" --k 5 --tipo sql_example
 """
 import argparse
 import os
