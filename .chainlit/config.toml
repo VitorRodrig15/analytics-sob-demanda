@@ -55,8 +55,11 @@ favorites = false
 reaction_on_message_received = false
 
 # Authorize users to spontaneously upload files with messages
+# Desativado (E6): o backend nao le arquivos anexados, so o texto da
+# mensagem (ver scripts/chainlit_app.py) - deixar habilitado so confundiria
+# quem testasse o chat.
 [features.spontaneous_file_upload]
-    enabled = true
+    enabled = false
     # Define accepted file types using MIME types
     # Examples:
     # 1. For specific file types:
