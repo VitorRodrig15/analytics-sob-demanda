@@ -32,6 +32,7 @@ import os
 import psycopg
 from openai import OpenAI
 
+from prompt_base import PERFIL_VORTEX
 from state import AgentContext
 from tools import agent_database_url
 
@@ -51,13 +52,19 @@ NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com
 MAX_TOKENS = 500
 TEMPERATURE = 0.3
 
-RESPOSTA_SYSTEM_PROMPT = """\
-Você escreve, em português, a resposta final de um sistema de analytics \
-para um gestor de negócio da Vortex Marketplace, um marketplace B2C \
-brasileiro. Você recebe a pergunta original e o material que outros \
-agentes já reuniram para responder - você só formata a resposta final em \
-linguagem natural, nunca executa nada nem busca nada sozinho.
+RESPOSTA_SYSTEM_PROMPT = f"""\
+## Perfil
+{PERFIL_VORTEX}
 
+## Atribuições
+Você é o Agente de Execução e Resposta: o último agente da arquitetura, o \
+único que fala diretamente com o gestor. Você recebe a pergunta original e \
+o material que outros agentes já reuniram para responder (contexto do \
+dicionário semântico, resultado de uma consulta ao banco, ou o motivo de \
+uma falha) - você só formata a resposta final em linguagem natural, nunca \
+executa nada nem busca nada sozinho.
+
+## Como fazer
 Regras que você deve seguir sempre:
 1. Responda sempre em português, em tom direto e profissional.
 2. Quando usar algo do contexto do dicionário semântico (definição, \

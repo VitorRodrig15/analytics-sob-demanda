@@ -283,6 +283,33 @@ completa re-confirmada em **34/34** (32 da E5 + 2 novos), e reconfirmei os
 caminhos `definicao`/`esclarecimento`/`dado` intactos rodando `grafo.py`
 manualmente antes de fechar.
 
+## Adendo (27/11/2026): prompts reestruturados (Perfil/Atribuições/Como fazer)
+
+Orientação recebida do supervisor numa reunião de acompanhamento da E6:
+estruturar os prompts de cada agente em blocos claros - **Perfil** (quem o
+agente é, pra quem o sistema trabalha), **Atribuições** (o que ELE, e só
+ele, faz - e o que não faz) e **Como fazer** (as regras de execução) - em
+vez de parágrafos corridos, e extrair o que se repete entre os agentes num
+lugar só ("skills"/blocos reutilizáveis) ao invés de cada `SYSTEM_PROMPT`
+copiar de novo a mesma frase sobre a empresa ou o mesmo fato de data.
+
+Criei [`scripts/agents/prompt_base.py`](../../../scripts/agents/prompt_base.py)
+com dois blocos compartilhados - `PERFIL_VORTEX` (contexto da empresa, hoje
+repetido em pelo menos 3 arquivos) e `DATA_REFERENCIA` (o fato fixo de
+"hoje = 2018-08-31") - e reescrevi os 3 prompts dos agentes que de fato
+chamam LLM no grafo atual (`scripts/agents/orquestrador.py`,
+`scripts/agents/gerador_sql.py`, `scripts/agents/execucao_resposta.py`) no
+formato Perfil/Atribuições/Como fazer, importando os blocos comuns em vez
+de duplicar o texto. O Validador não tem prompt (é determinístico, via
+`sqlglot`) e o agente da E4 (`scripts/legado/agent.py`) e o `prompts.py` da
+E3 ficaram de fora por não fazerem mais parte do fluxo do grafo.
+
+Nenhuma regra de negócio existente foi removida ou alterada, só
+reorganizada e com o perfil comum extraído - validado rodando a suíte
+completa (**34/34**) e os 3 caminhos principais do grafo manualmente
+(`definicao`, `dado` e `fora_de_escopo`), todos batendo com o comportamento
+e os valores já confirmados antes da mudança.
+
 ## Limitação conhecida
 
 A latência deixou de ser o problema principal depois da migração acima — de 130-180s por

@@ -18,6 +18,8 @@ import os
 
 from openai import OpenAI
 
+from prompt_base import DATA_REFERENCIA, PERFIL_VORTEX
+
 LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 # 4000, não 1500: a bateria de testes de integração real (Task 5.5,
@@ -35,16 +37,23 @@ NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com
 MAX_TOKENS = 4000
 TEMPERATURE = 0.2
 
-GERADOR_SQL_SYSTEM_PROMPT = """\
-Você escreve consultas SQL para o Agente Gerador de SQL da Vortex \
-Marketplace, um marketplace B2C brasileiro. Você recebe a pergunta de um \
-gestor de negócio e trechos do dicionário semântico (fórmulas, regras de \
-negócio, descrição de tabelas, exemplos de SQL validados) já buscados por \
-outro agente, e devolve só a consulta SQL que responde à pergunta.
+GERADOR_SQL_SYSTEM_PROMPT = f"""\
+## Perfil
+{PERFIL_VORTEX}
 
-Fato fixo, válido sempre: a data de referência ("hoje") para qualquer \
-cálculo de período é 2018-08-31. "Este ano" = 2018. "Último trimestre" = \
-01/06/2018 a 31/08/2018. Os dados confiáveis só existem até essa data.
+## Atribuições
+Você é o Agente Gerador de SQL: o agente do sistema que escreve consultas, \
+nunca quem explica conceitos pro gestor nem quem executa nada no banco. \
+Você recebe a pergunta de um gestor de negócio e trechos do dicionário \
+semântico (fórmulas, regras de negócio, descrição de tabelas, exemplos de \
+SQL validados) já buscados por outro agente, e devolve só a consulta SQL \
+que responde à pergunta. Você NUNCA executa a consulta (isso é papel do \
+Agente de Execução, depois de você) e NUNCA decide sozinho se o SQL é \
+seguro (isso é papel do Validador, que roda logo em seguida e pode te \
+devolver a tentativa para corrigir).
+
+## Como fazer
+{DATA_REFERENCIA}
 
 Regra de localização (erro comum, preste atenção): região, cidade e estado \
 do CLIENTE estão em dw.customers (customer_region, customer_city, \
@@ -57,7 +66,7 @@ contexto do dicionário semântico recebido - nunca escreva uma fórmula de \
 memória, mesmo que pareça óbvia, se ela não estiver no contexto. Pelo \
 mesmo motivo, nunca invente nome de tabela ou de coluna que não esteja no \
 contexto do dicionário semântico recebido ou na regra de localização \
-abaixo - toda consulta tem que referenciar ao menos uma tabela real de dw.*.
+acima - toda consulta tem que referenciar ao menos uma tabela real de dw.*.
 2. Escreva só um comando de leitura, começando por SELECT ou WITH. Nunca \
 escreva INSERT, UPDATE, DELETE, DROP ou qualquer outro comando de escrita.
 3. Devolva só o SQL puro, sem markdown, sem crases (```), sem comentários, \
